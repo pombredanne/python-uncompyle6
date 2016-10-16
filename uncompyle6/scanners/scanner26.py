@@ -162,20 +162,6 @@ class Scanner26(scan.Scanner2):
             last_stmt = i
             i = self.next_stmt[i]
 
-        imports = self.all_instr(0, codelen,
-                                (self.opc.IMPORT_NAME, self.opc.IMPORT_FROM,
-                                 self.opc.IMPORT_STAR))
-        # Changes IMPORT_NAME to IMPORT_NAME_CONT.
-        # Possibly a Python 2.0 hangover
-        # FIXME: Move into a < 2.2 scanner.
-        if len(imports) > 1 and self.version < 2.2:
-            last_import = imports[0]
-            for i in imports[1:]:
-                if self.lines[last_import].next > i:
-                    if self.code[last_import] == self.opc.IMPORT_NAME == self.code[i]:
-                        replace[i] = 'IMPORT_NAME_CONT'
-                last_import = i
-
         extended_arg = 0
         for offset in self.op_range(0, codelen):
             op = self.code[offset]
@@ -183,12 +169,19 @@ class Scanner26(scan.Scanner2):
             oparg = None; pattr = None
 
             if offset in jump_targets:
-                k = 0
-                for j in jump_targets[offset]:
-                    tokens.append(Token('COME_FROM', None, repr(j),
-                                        offset="%s_%d" % (offset, k),
-                                        has_arg = True))
-                    k += 1
+                jump_idx = 0
+                # We want to process COME_FROMs to the same offset to be in *descending*
+                # offset order so we have the larger range or biggest instruction interval
+                # last. (I think they are sorted in increasing order, but for safety
+                # we sort them). That way, specific COME_FROM tags will match up
+                # properly. For example, a "loop" with an "if" nested in it should have the
+                # "loop" tag last so the grammar rule matches that properly.
+                for jump_offset  in sorted(jump_targets[offset], reverse=True):
+                    tokens.append(Token(
+                        'COME_FROM', None, repr(jump_offset),
+                        offset="%s_%d" % (offset, jump_idx),
+                        has_arg = True))
+                    jump_idx += 1
 
             has_arg = (op >= self.opc.HAVE_ARGUMENT)
             if has_arg:
@@ -247,7 +240,7 @@ class Scanner26(scan.Scanner2):
                 # CE - Hack for >= 2.5
                 #      Now all values loaded via LOAD_CLOSURE are packed into
                 #      a tuple before calling MAKE_CLOSURE.
-                if (op == self.opc.BUILD_TUPLE and
+                if (self.version >= 2.5 and op == self.opc.BUILD_TUPLE and
                     self.code[self.prev[offset]] == self.opc.LOAD_CLOSURE):
                     continue
                 else:

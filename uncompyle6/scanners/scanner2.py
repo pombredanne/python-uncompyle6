@@ -143,13 +143,19 @@ class Scanner2(scan.Scanner):
         extended_arg = 0
         for offset in self.op_range(0, n):
             if offset in jump_targets:
-                k = 0
-                for j in jump_targets[offset]:
+                jump_idx = 0
+                # We want to process COME_FROMs to the same offset to be in *descending*
+                # offset order so we have the larger range or biggest instruction interval
+                # last. (I think they are sorted in increasing order, but for safety
+                # we sort them). That way, specific COME_FROM tags will match up
+                # properly. For example, a "loop" with an "if" nested in it should have the
+                # "loop" tag last so the grammar rule matches that properly.
+                for jump_offset  in sorted(jump_targets[offset], reverse=True):
                     tokens.append(Token(
-                        'COME_FROM', None, repr(j),
-                        offset="%s_%d" % (offset, k),
+                        'COME_FROM', None, repr(jump_offset),
+                        offset="%s_%d" % (offset, jump_idx),
                         has_arg = True))
-                    k += 1
+                    jump_idx += 1
 
             op = self.code[offset]
             opname = self.opc.opname[op]
@@ -410,7 +416,7 @@ class Scanner2(scan.Scanner):
                 j = self.prev[s]
                 while code[j] in self.designator_ops:
                     j = self.prev[j]
-                if code[j] == self.opc.FOR_ITER:
+                if self.version >= 2.1 and code[j] == self.opc.FOR_ITER:
                     stmts.remove(s)
                     continue
             last_stmt = s
@@ -564,7 +570,8 @@ class Scanner2(scan.Scanner):
 
                 target = self.get_target(jump_back, self.opc.JUMP_ABSOLUTE)
 
-                if code[target] in (self.opc.FOR_ITER, self.opc.GET_ITER):
+                if (self.version >= 2.0 and
+                    code[target] in (self.opc.FOR_ITER, self.opc.GET_ITER)):
                     loop_type = 'for'
                 else:
                     loop_type = 'while'
@@ -837,7 +844,8 @@ class Scanner2(scan.Scanner):
                 oparg = self.get_argument(offset)
 
                 if label is None:
-                    if op in self.opc.hasjrel and op != self.opc.FOR_ITER:
+                    if (op in self.opc.hasjrel and
+                        (self.version < 2.0 or op != self.opc.FOR_ITER)):
                         label = offset + 3 + oparg
                     elif self.version == 2.7 and op in self.opc.hasjabs:
                         if op in (self.opc.JUMP_IF_FALSE_OR_POP,
