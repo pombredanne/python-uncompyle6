@@ -76,6 +76,8 @@ class Python2Parser(PythonParser):
         return_if_stmts ::= _stmts return_if_stmt
         return_if_stmt ::= ret_expr RETURN_END_IF
 
+        stmt ::= importstmt
+
         stmt ::= break_stmt
         break_stmt ::= BREAK_LOOP
 
@@ -195,16 +197,6 @@ class Python2Parser(PythonParser):
         '''
         genexpr ::= LOAD_GENEXPR MAKE_FUNCTION_0 expr GET_ITER CALL_FUNCTION_1
         '''
-
-    # def p_import2(self, args):
-    #     '''
-    #     # These might be relevant for only Python 2.0 or so.
-    #     importstar ::= LOAD_CONST LOAD_CONST IMPORT_NAME_CONT IMPORT_STAR
-    #     importfrom ::= LOAD_CONST LOAD_CONST IMPORT_NAME_CONT importlist2 POP_TOP
-    #     import_as_cont ::= IMPORT_NAME_CONT designator
-    #     import_as_cont ::= IMPORT_NAME_CONT load_attrs designator
-    #     '''
-
 
     def p_expr2(self, args):
         """

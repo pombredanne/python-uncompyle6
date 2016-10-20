@@ -22,10 +22,6 @@ class Python26Parser(Python2Parser):
         except_cond3 ::= DUP_TOP expr COMPARE_OP
                          JUMP_IF_FALSE POP_TOP POP_TOP designator POP_TOP
 
-        # Might be a bug from when COME_FROM wasn't properly handled
-        try_middle   ::= JUMP_FORWARD COME_FROM except_stmts
-                         POP_TOP END_FINALLY come_froms
-
         try_middle   ::= JUMP_FORWARD COME_FROM except_stmts
                          come_from_pop END_FINALLY COME_FROM
 
@@ -43,8 +39,13 @@ class Python26Parser(Python2Parser):
         trystmt      ::= SETUP_EXCEPT suite_stmts_opt POP_BLOCK
                          try_middle
 
+        trystmt      ::= SETUP_EXCEPT suite_stmts_opt POP_BLOCK
+                         try_middle come_froms
+
         tryelsestmt    ::= SETUP_EXCEPT suite_stmts_opt POP_BLOCK
                            try_middle else_suite come_froms
+
+        _ifstmts_jump ::= c_stmts_opt JUMP_FORWARD COME_FROM POP_TOP
 
         except_suite ::= c_stmts_opt JUMP_FORWARD come_from_pop
 
@@ -170,6 +171,7 @@ class Python26Parser(Python2Parser):
         list_for ::= expr _for designator list_iter jb_cont
 
         list_iter  ::= list_if JUMP_BACK
+        list_iter  ::= list_if JUMP_BACK COME_FROM POP_TOP
 	list_compr ::= BUILD_LIST_0 DUP_TOP
 		       designator list_iter del_stmt
 	list_compr ::= BUILD_LIST_0 DUP_TOP
