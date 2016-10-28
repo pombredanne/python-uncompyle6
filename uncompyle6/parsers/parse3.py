@@ -360,10 +360,9 @@ class Python3Parser(PythonParser):
         # Python 3.4+
         expr ::= LOAD_CLASSDEREF
 
+        binary_subscr2 ::= expr expr DUP_TOP_TWO BINARY_SUBSCR
         # Python3 drops slice0..slice3
 
-        # In Python 2, DUP_TOP_TWO is DUP_TOPX_2
-        binary_subscr2 ::= expr expr DUP_TOP_TWO BINARY_SUBSCR
         '''
 
     @staticmethod
@@ -500,7 +499,6 @@ class Python3Parser(PythonParser):
             load_attr ::= expr LOOKUP_METHOD
             call_function ::= expr CALL_METHOD
         """
-        saw_format_value = False
         for i, token in enumerate(tokens):
             opname = token.type
             opname_base = opname[:opname.rfind('_')]
@@ -513,13 +511,6 @@ class Python3Parser(PythonParser):
                     assign2_pypy ::= expr expr designator designator
                 """, nop_func)
                 continue
-            elif opname == 'FORMAT_VALUE':
-                # Python 3.6+
-                self.addRule("""
-                    expr ::= fstring_expr
-                    fstring_expr ::= expr FORMAT_VALUE
-                """, nop_func)
-
             elif opname in ('CALL_FUNCTION', 'CALL_FUNCTION_VAR',
                             'CALL_FUNCTION_VAR_KW', 'CALL_FUNCTION_KW'):
                 self.custom_classfunc_rule(opname, token, customize)
@@ -542,14 +533,6 @@ class Python3Parser(PythonParser):
                 if opname_base == 'BUILD_TUPLE':
                     rule = ('load_closure ::= %s%s' % (('LOAD_CLOSURE ' * v), opname))
                     self.add_unique_rule(rule, opname, token.attr, customize)
-                if opname_base == 'BUILD_LIST' and saw_format_value:
-                    format_or_str_n = "formatted_value_or_str_%s" % v
-                    self.addRule("""
-                    expr ::= joined_str
-                    joined_str ::=  LOAD_CONST LOAD_ATTR %s CALL_FUNCTION_1
-                    %s ::= %s%s
-                    """ % (format_or_str_n, format_or_str_n, ("formatted_value_or_str " *v), opname),
-                                 nop_func)
 
             elif opname == 'LOOKUP_METHOD':
                 # A PyPy speciality - DRY with parse2
@@ -593,7 +576,7 @@ class Python3Parser(PythonParser):
                     self.add_unique_rule(rule, opname, token.attr, customize)
                     rule = "mapexpr ::=  %s %s" % (opname, kvlist_n)
                 self.add_unique_rule(rule, opname, token.attr, customize)
-            elif opname_base in ('UNPACK_EX'):
+            elif opname_base in ('UNPACK_EX',):
                 before_count, after_count = token.attr
                 rule = 'unpack ::= ' + opname + ' designator' * (before_count + after_count + 1)
                 self.add_unique_rule(rule, opname, token.attr, customize)
@@ -687,54 +670,11 @@ class Python3Parser(PythonParser):
                 self.add_unique_rule(rule, opname, token.attr, customize)
         return
 
-
-class Python31Parser(Python3Parser):
-
-    def p_31(self, args):
-        """
-        # Store locals is only in Python 3.0 to 3.3
-        stmt ::= store_locals
-        store_locals ::= LOAD_FAST STORE_LOCALS
-        """
-
-class Python32Parser(Python3Parser):
-
-    def p_32(self, args):
-        """
-        # Store locals is only in Python 3.0 to 3.3
-        stmt ::= store_locals
-        store_locals ::= LOAD_FAST STORE_LOCALS
-        """
-
-class Python33Parser(Python3Parser):
-    def p_33(self, args):
-        """
-        # Store locals is only in Python 3.0 to 3.3
-        stmt ::= store_locals
-        store_locals ::= LOAD_FAST STORE_LOCALS
-
-        # Python 3.3 adds yield from.
-        expr ::= yield_from
-        yield_from ::= expr expr YIELD_FROM
-        """
-
 class Python3ParserSingle(Python3Parser, PythonParserSingle):
-    pass
-
-
-class Python31ParserSingle(Python31Parser, PythonParserSingle):
-    pass
-
-class Python32ParserSingle(Python32Parser, PythonParserSingle):
-    pass
-
-
-class Python33ParserSingle(Python33Parser, PythonParserSingle):
     pass
 
 def info(args):
     # Check grammar
-    # Should also add a way to dump grammar
     p = Python3Parser()
     if len(args) > 0:
         arg = args[0]
@@ -742,11 +682,15 @@ def info(args):
             from uncompyle6.parser.parse35 import Python35Parser
             p = Python35Parser()
         elif arg == '3.3':
+            from uncompyle6.parser.parse33 import Python33Parser
             p = Python33Parser()
         elif arg == '3.2':
+            from uncompyle6.parser.parse32 import Python32Parser
             p = Python32Parser()
     p.checkGrammar()
-
+    if len(sys.argv) > 1 and sys.argv[1] == 'dump':
+        print('-' * 50)
+        p.dumpGrammar()
 
 if __name__ == '__main__':
     import sys

@@ -42,11 +42,20 @@ class PythonParser(GenericASTBuilder):
         return
 
     def add_unique_rules(self, rules, customize):
-        """Add rules to grammar
+        """Add rules (a list of string) to grammar
         """
         for rule in rules:
+            if len(rule) == 0:
+                continue
             opname = rule.split('::=')[0].strip()
             self.add_unique_rule(rule, opname, 0, customize)
+        return
+
+    def add_unique_doc_rules(self, rules_str, customize):
+        """Add rules (a docstring-like list of rules) to grammar
+        """
+        rules = [r.strip() for r in rules_str.split("\n")]
+        self.add_unique_rules(rules, customize)
         return
 
     def cleanup(self):
@@ -613,20 +622,23 @@ def get_python_parser(
     else:
         import uncompyle6.parsers.parse3 as parse3
         if version == 3.1:
+            import uncompyle6.parsers.parse31 as parse31
             if compile_mode == 'exec':
-                p = parse3.Python31Parser(debug_parser)
+                p = parse31.Python31Parser(debug_parser)
             else:
-                p = parse3.Python31ParserSingle(debug_parser)
+                p = parse31.Python31ParserSingle(debug_parser)
         elif version == 3.2:
+            import uncompyle6.parsers.parse32 as parse32
             if compile_mode == 'exec':
-                p = parse3.Python32Parser(debug_parser)
+                p = parse32.Python32Parser(debug_parser)
             else:
-                p = parse3.Python32ParserSingle(debug_parser)
+                p = parse32.Python32ParserSingle(debug_parser)
         elif version == 3.3:
+            import uncompyle6.parsers.parse33 as parse33
             if compile_mode == 'exec':
-                p = parse3.Python33Parser(debug_parser)
+                p = parse33.Python33Parser(debug_parser)
             else:
-                p = parse3.Python33ParserSingle(debug_parser)
+                p = parse33.Python33ParserSingle(debug_parser)
         elif version == 3.4:
             import uncompyle6.parsers.parse34 as parse34
             if compile_mode == 'exec':
