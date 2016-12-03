@@ -390,12 +390,27 @@ class Python2Parser(PythonParser):
         self.check_reduce['augassign1'] = 'AST'
         self.check_reduce['augassign2'] = 'AST'
         self.check_reduce['_stmts'] = 'AST'
+        self.check_reduce['sstmt4096s'] = 'no-ast'
+        self.check_reduce['sstmt64s'] = 'AST'
+        self.check_reduce['sstmts'] = 'AST'
         return
 
     def reduce_is_invalid(self, rule, ast, tokens, first, last):
         lhs = rule[0]
         if lhs in ('augassign1', 'augassign2') and ast[0][0] == 'and':
             return True
+        elif lhs == 'sstmts':
+            if len(ast[0]) > 64:
+                return True
+            return False
+        elif lhs == 'sstmt64s':
+            if len(ast[0]) > 64:
+                print('sstmts64  kill')
+                return True
+            return False
+        elif lhs == 'sstmt4096s':
+            print('WOOT4096s')
+            return False
         elif lhs == '_stmts':
             for i, stmt in enumerate(ast):
                 if stmt == '_stmts':

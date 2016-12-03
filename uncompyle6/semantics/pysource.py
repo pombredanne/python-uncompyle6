@@ -1772,7 +1772,8 @@ class SourceWalker(GenericASTTraversal, object):
         elif lastnodetype.startswith('ROT_TWO'):
             self.write('('); endchar = ')'
         else:
-            raise 'Internal Error: n_build_list expects list or tuple'
+            from trepan.api import debug; debug()
+            raise Exception('Internal Error: n_build_list expects list or tuple')
 
         flat_elems = []
         for elem in node:
@@ -1856,6 +1857,12 @@ class SourceWalker(GenericASTTraversal, object):
         if node[-2][0] == 'unpack':
             node[-2][0].type = 'unpack_w_parens'
         self.default(node)
+
+    def n_sstmt64s(self, node):
+        for stmt in node:
+            self.preorder(stmt)
+
+    n_sstmt4096s = n_sstmt64s
 
     def engine(self, entry, startnode):
         """The format template interpetation engine.  See the comment at the

@@ -107,7 +107,8 @@ class PythonParser(GenericASTBuilder):
         return token.type
 
     def nonterminal(self, nt, args):
-        collect = ('stmts', 'exprlist', 'kvlist', '_stmts', 'print_items', 'kwargs',
+        collect = ('stmts', 'sstmts', 'sstmt64s',
+                   'exprlist', 'kvlist', '_stmts', 'print_items', 'kwargs',
                    # PYPY:
                    'kvlist_n')
 
@@ -140,11 +141,36 @@ class PythonParser(GenericASTBuilder):
     ## Common Python 2 and Python 3 grammar rules
     ##############################################
     def p_start(self, args):
-        '''
-        # The start or goal symbol
-        stmts ::= stmts sstmt
-        stmts ::= sstmt
-        '''
+        """
+        # The start or goal symbol is stmts normal in exec mode
+
+        stmts      ::= sstmt4096s sstmt64s sstmts
+
+        sstmts     ::= sstmt+
+
+        # This is for very abusive Python programs
+        # Note that the next line is right recursive
+        sstmt64s   ::= sstmt64*
+        sstmt64    ::= sstmt sstmt sstmt sstmt sstmt sstmt sstmt sstmt
+                       sstmt sstmt sstmt sstmt sstmt sstmt sstmt sstmt
+                       sstmt sstmt sstmt sstmt sstmt sstmt sstmt sstmt
+                       sstmt sstmt sstmt sstmt sstmt sstmt sstmt sstmt
+                       sstmt sstmt sstmt sstmt sstmt sstmt sstmt sstmt
+                       sstmt sstmt sstmt sstmt sstmt sstmt sstmt sstmt
+                       sstmt sstmt sstmt sstmt sstmt sstmt sstmt sstmt
+                       sstmt sstmt sstmt sstmt sstmt sstmt sstmt sstmt
+
+        sstmt4096s ::= sstmt4096*
+        sstmt4096  ::= sstmt64 sstmt64 sstmt64 sstmt64
+                       sstmt64 sstmt64 sstmt64 sstmt64
+                       sstmt64 sstmt64 sstmt64 sstmt64
+                       sstmt64 sstmt64 sstmt64 sstmt64
+                       sstmt64 sstmt64 sstmt64 sstmt64
+                       sstmt64 sstmt64 sstmt64 sstmt64
+                       sstmt64 sstmt64 sstmt64 sstmt64
+                       sstmt64 sstmt64 sstmt64 sstmt64
+                       sstmt64 sstmt64 sstmt64 sstmt64
+        """
 
     def p_call_stmt(self, args):
         '''
@@ -422,7 +448,7 @@ class PythonParser(GenericASTBuilder):
         """
 
     def p_expr(self, args):
-        '''
+        """
         expr ::= _mklambda
         expr ::= LOAD_FAST
         expr ::= LOAD_NAME
@@ -537,9 +563,15 @@ class PythonParser(GenericASTBuilder):
         # Positional arguments in make_function
         pos_arg ::= expr
 
-        expr32 ::= expr expr expr expr expr expr expr expr expr expr expr expr expr expr expr expr expr expr expr expr expr expr expr expr expr expr expr expr expr expr expr expr
-        expr1024 ::= expr32 expr32 expr32 expr32 expr32 expr32 expr32 expr32 expr32 expr32 expr32 expr32 expr32 expr32 expr32 expr32 expr32 expr32 expr32 expr32 expr32 expr32 expr32 expr32 expr32 expr32 expr32 expr32 expr32 expr32 expr32 expr32
-        '''
+        expr32   ::= expr expr expr expr expr expr expr expr
+                     expr expr expr expr expr expr expr expr
+                     expr expr expr expr expr expr expr expr
+                     expr expr expr expr expr expr expr expr
+        expr1024 ::= expr32 expr32 expr32 expr32 expr32 expr32 expr32 expr32
+                     expr32 expr32 expr32 expr32 expr32 expr32 expr32 expr32
+                     expr32 expr32 expr32 expr32 expr32 expr32 expr32 expr32
+                     expr32 expr32 expr32 expr32 expr32 expr32 expr32 expr32
+        """
 
     def p_designator(self, args):
         '''

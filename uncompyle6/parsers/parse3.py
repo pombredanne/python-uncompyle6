@@ -683,6 +683,7 @@ class Python3Parser(PythonParser):
         self.check_reduce['augassign1'] = 'AST'
         self.check_reduce['augassign2'] = 'AST'
         self.check_reduce['while1stmt'] = 'noAST'
+        self.check_reduce['sstmts'] = 'AST'
         return
 
     def reduce_is_invalid(self, rule, ast, tokens, first, last):

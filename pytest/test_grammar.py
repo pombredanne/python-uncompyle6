@@ -19,7 +19,11 @@ def test_grammar():
     unused_rhs = set(['build_list', 'call_function', 'mkfunc',
                       'mklambda',
                       'unpack', 'unpack_list'])
-    expect_right_recursive = [['designList', ('designator', 'DUP_TOP', 'designList')]]
+    expect_right_recursive = [['designList', ('designator', 'DUP_TOP', 'designList')],
+                              ['sstmts', ('sstmt32s', 'sstmts')],
+                              ['sstmts', ('sstmt512s', 'sstmts')],
+                              ['sstmts', ('sstmt512s', 'sstmt32s', 'sstmts')],
+    ]
     if PYTHON3:
         expect_lhs.add('load_genexpr')
 
