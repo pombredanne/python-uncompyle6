@@ -72,7 +72,7 @@ class Python35Parser(Python34Parser):
                                POP_BLOCK JUMP_FORWARD COME_FROM_EXCEPT DUP_TOP
                                LOAD_GLOBAL COMPARE_OP POP_JUMP_IF_FALSE
                                POP_TOP POP_TOP POP_TOP POP_EXCEPT POP_BLOCK
-                               JUMP_ABSOLUTE END_FINALLY COME_FROM
+                               JUMP_ABSOLUTE COME_FROM END_FINALLY COME_FROM
                                for_block POP_BLOCK JUMP_ABSOLUTE
                                opt_come_from_loop
 
@@ -85,7 +85,7 @@ class Python35Parser(Python34Parser):
                                POP_BLOCK JUMP_FORWARD COME_FROM_EXCEPT DUP_TOP
                                LOAD_GLOBAL COMPARE_OP POP_JUMP_IF_FALSE
                                POP_TOP POP_TOP POP_TOP POP_EXCEPT POP_BLOCK
-                               JUMP_ABSOLUTE END_FINALLY COME_FROM
+                               JUMP_ABSOLUTE COME_FROM END_FINALLY COME_FROM
                                for_block POP_BLOCK JUMP_ABSOLUTE
                                else_suite COME_FROM_LOOP
 

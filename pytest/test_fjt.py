@@ -57,7 +57,7 @@ def test_if_in_for():
         scan.build_lines_data(code)
         scan.build_prev_op()
         fjt  = scan.find_jump_targets(False)
-        assert {69: [66], 63: [18]} == fjt
+        assert {63: [18], 66: [15], 69: [3, 66]} == fjt
         assert scan.structs == \
           [{'end': 72, 'type': 'root', 'start': 0},
            {'end': 66, 'type': 'if-then', 'start': 6},

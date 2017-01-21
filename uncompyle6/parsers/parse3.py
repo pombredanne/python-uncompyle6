@@ -124,6 +124,7 @@ class Python3Parser(PythonParser):
         assert_expr_and ::= assert_expr jmp_false expr
 
         ifstmt ::= testexpr _ifstmts_jump
+        ifstmt ::= testexpr _ifstmts_jump COME_FROM
 
         testexpr ::= testfalse
         testexpr ::= testtrue
@@ -132,6 +133,7 @@ class Python3Parser(PythonParser):
 
         _ifstmts_jump ::= return_if_stmts
         _ifstmts_jump ::= c_stmts_opt JUMP_FORWARD COME_FROM
+        _ifstmts_jump ::= c_stmts_opt COME_FROM JUMP_FORWARD COME_FROM
 
         iflaststmt ::= testexpr c_stmts_opt JUMP_ABSOLUTE
 
@@ -154,7 +156,10 @@ class Python3Parser(PythonParser):
 
         ifelsestmtr ::= testexpr return_if_stmts return_stmts
 
+        # jb_cf keeps indices in pysource in the same place
+        jb_cf       ::= JUMP_BACK COME_FROM
         ifelsestmtl ::= testexpr c_stmts_opt JUMP_BACK else_suitel
+        ifelsestmtl ::= testexpr c_stmts_opt jb_cf else_suitel
 
         # FIXME: this feels like a hack. Is it just 1 or two
         # COME_FROMs?  the parsed tree for this and even with just the
@@ -180,12 +185,19 @@ class Python3Parser(PythonParser):
 
         try_middle ::= jmp_abs COME_FROM except_stmts
                        END_FINALLY
+
         try_middle ::= jmp_abs COME_FROM_EXCEPT except_stmts
                        END_FINALLY
+        try_middle ::= jmp_abs COME_FROM_EXCEPT except_stmts
+                       COME_FROM END_FINALLY
 
         # FIXME: remove this
+
         try_middle ::= JUMP_FORWARD COME_FROM except_stmts
                        END_FINALLY COME_FROM
+        try_middle ::= JUMP_FORWARD COME_FROM_EXCEPT except_stmts
+                       COME_FROM END_FINALLY COME_FROM
+
         try_middle ::= JUMP_FORWARD COME_FROM except_stmts
                        END_FINALLY COME_FROM_EXCEPT
 
@@ -193,6 +205,8 @@ class Python3Parser(PythonParser):
         except_stmts ::= except_stmt
 
         except_stmt ::= except_cond1 except_suite
+        except_stmt ::= except_cond1 except_suite COME_FROM
+
         except_stmt ::= except_cond2 except_suite
         except_stmt ::= except_cond2 except_suite_finalize
         except_stmt ::= except
@@ -294,7 +308,11 @@ class Python3Parser(PythonParser):
         # FIXME: Common with 2.7
         ret_and  ::= expr JUMP_IF_FALSE_OR_POP ret_expr_or_cond COME_FROM
         ret_or   ::= expr JUMP_IF_TRUE_OR_POP ret_expr_or_cond COME_FROM
+
+        ret_endif_cf ::= RETURN_END_IF COME_FROM
         ret_cond ::= expr POP_JUMP_IF_FALSE expr RETURN_END_IF ret_expr_or_cond
+        ret_cond ::= expr POP_JUMP_IF_FALSE expr ret_endif_cf ret_expr_or_cond
+
         ret_cond_not ::= expr POP_JUMP_IF_TRUE expr RETURN_END_IF ret_expr_or_cond
 
         or   ::= expr JUMP_IF_TRUE_OR_POP expr COME_FROM

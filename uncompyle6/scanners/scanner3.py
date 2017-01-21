@@ -153,7 +153,7 @@ class Scanner3(Scanner):
         """
 
         show_asm = self.show_asm if not show_asm else show_asm
-        # show_asm = 'both'
+        # show_asm = 'after'
         if show_asm in ('both', 'before'):
             bytecode = Bytecode(co, self.opc)
             for instr in bytecode.get_instructions(co):
@@ -492,6 +492,7 @@ class Scanner3(Scanner):
         if debug in ('both', 'after'):
             import pprint as pp
             pp.pprint(self.structs)
+            pp.pprint(self.fixed_jumps)
 
         return targets
 
@@ -781,6 +782,11 @@ class Scanner3(Scanner):
                     else:
                         self.fixed_jumps[offset] = match[-1]
                         return
+                elif rtarget > offset:
+                    if code[rtarget] != self.opc.JUMP_ABSOLUTE:
+                        self.fixed_jumps[offset] = rtarget
+
+
             # op == POP_JUMP_IF_TRUE
             else:
                 next = self.next_stmt[offset]
@@ -850,6 +856,8 @@ class Scanner3(Scanner):
                     self.structs.append({'type': 'else',
                                          'start': rtarget,
                                          'end': end})
+                    if offset in self.fixed_jumps and self.fixed_jumps[offset] == rtarget:
+                        del self.fixed_jumps[offset]
                     self.else_start[rtarget] = end
             elif self.is_jump_back(pre_rtarget):
                 if_end = rtarget
@@ -923,7 +931,7 @@ class Scanner3(Scanner):
                     self.return_end_ifs.remove(offset)
                     pass
                 pass
-            elif op == self.opc.JUMP_FORWARD:
+            elif op in (self.opc.JUMP_FORWARD, self.opc.JUMP_ABSOLUTE):
                 # If we have:
                 #   JUMP_FORWARD x, [non-jump, insns], RETURN_VALUE, x:
                 # then RETURN_VALUE is not RETURN_END_IF
@@ -933,7 +941,7 @@ class Scanner3(Scanner):
                     rtarget_prev in self.return_end_ifs):
                     i = rtarget_prev
                     while i != offset:
-                        if code[i] in [op3.JUMP_FORWARD, op3.JUMP_ABSOLUTE]:
+                        if code[i] in [self.opc.JUMP_FORWARD, self.opc.JUMP_ABSOLUTE]:
                             return
                         i = self.prev[i]
                     self.return_end_ifs.remove(rtarget_prev)
