@@ -259,8 +259,6 @@ class SourceWalker(GenericASTTraversal, object):
         else:
             TABLE_DIRECT.update({
                 'except_cond3':	 ( '%|except %c, %c:\n', 1, 6 ),
-                'testtrue_then': ( 'not %p', (0, 22) ),
-
             })
         if 2.4 <= version <= 2.6:
             TABLE_DIRECT.update({

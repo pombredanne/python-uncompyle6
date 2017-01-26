@@ -126,6 +126,7 @@ class Python2Parser(PythonParser):
         assert_expr_and ::= assert_expr jmp_false expr
 
         ifstmt ::= testexpr _ifstmts_jump
+        ifstmt ::= testexpr_then _ifstmts_jump
         ifstmt ::= testexpr return_if_stmts COME_FROM
 
         testexpr ::= testfalse
@@ -140,6 +141,7 @@ class Python2Parser(PythonParser):
         iflaststmtl ::= testexpr c_stmts_opt JUMP_BACK
 
         ifelsestmt ::= testexpr c_stmts_opt JUMP_FORWARD else_suite COME_FROM
+        ifelsestmt ::= testexpr_then c_stmts_opt jf_cf_pop else_suite come_froms
 
         ifelsestmtc ::= testexpr c_stmts_opt JUMP_ABSOLUTE else_suitec
 
@@ -149,6 +151,11 @@ class Python2Parser(PythonParser):
 
         ifelsestmtl ::= testexpr c_stmts_opt JUMP_BACK else_suitel
 
+
+        testexpr_then  ::= testtrue_then
+        testexpr_then  ::= testfalse_then
+        testtrue_then  ::= expr jmp_true_then
+        testfalse_then ::= expr jmp_false_then
 
         # this is nested inside a trystmt
         tryfinallystmt ::= SETUP_FINALLY suite_stmts_opt

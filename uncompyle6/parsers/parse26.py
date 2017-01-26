@@ -153,8 +153,6 @@ class Python26Parser(Python2Parser):
 
         while1stmt ::= SETUP_LOOP l_stmts_opt JUMP_BACK COME_FROM
 
-        ifstmt         ::= testexpr_then _ifstmts_jump
-
         # Semantic actions want the else to be at position 3
         ifelsestmt     ::= testexpr      c_stmts_opt jf_cf_pop else_suite come_froms
         ifelsestmt     ::= testexpr_then c_stmts_opt jf_cf_pop else_suite come_froms
@@ -167,11 +165,6 @@ class Python26Parser(Python2Parser):
 
         iflaststmt     ::= testexpr_then c_stmts_opt JUMP_ABSOLUTE come_froms POP_TOP
         iflaststmt     ::= testexpr      c_stmts_opt JUMP_ABSOLUTE come_froms POP_TOP
-
-        testexpr_then  ::= testtrue_then
-        testexpr_then  ::= testfalse_then
-        testtrue_then  ::= expr jmp_true_then
-        testfalse_then ::= expr jmp_false_then
 
         jmp_false_then ::= JUMP_IF_FALSE THEN POP_TOP
         jmp_true_then  ::= JUMP_IF_TRUE THEN POP_TOP

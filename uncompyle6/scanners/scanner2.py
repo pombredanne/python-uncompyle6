@@ -176,6 +176,11 @@ class Scanner2(scan.Scanner):
                         has_arg = True))
                     jump_idx += 1
                     pass
+            elif offset in self.thens:
+                tokens.append(Token(
+                    'THEN', None, self.thens[offset],
+                    offset="%s_0" % offset,
+                    has_arg = True))
 
             op = self.code[offset]
             op_name = self.opc.opname[op]
@@ -938,7 +943,6 @@ class Scanner2(scan.Scanner):
                                            'end':   rtarget})
                     self.thens[start] = rtarget
                     if self.version == 2.7 or code[pre_rtarget+1] != self.opc.JUMP_FORWARD:
-                        self.fixed_jumps[offset] = rtarget
                         self.return_end_ifs.add(pre_rtarget)
 
         elif op in self.pop_jump_if_or_pop:

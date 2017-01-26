@@ -214,6 +214,7 @@ TABLE_DIRECT = {
     'iflaststmt':		( '%|if %c:\n%+%c%-', 0, 1 ),
     'iflaststmtl':		( '%|if %c:\n%+%c%-', 0, 1 ),
     'testtrue':         ( 'not %p', (0, 22) ),
+    'testtrue_then':    ( 'not %p', (0, 22) ),
 
     'ifelsestmt':	( '%|if %c:\n%+%c%-%|else:\n%+%c%-', 0, 1, 3 ),
     'ifelsestmtc':	( '%|if %c:\n%+%c%-%|else:\n%+%c%-', 0, 1, 3 ),
