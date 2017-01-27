@@ -39,7 +39,7 @@ def test_grammar():
     s = get_scanner(PYTHON_VERSION, IS_PYPY)
     ignore_set = set(
             """
-            JUMP_BACK CONTINUE RETURN_END_IF
+            JUMP_BACK CONTINUE RETURN_END_IF THEN
             COME_FROM COME_FROM_EXCEPT COME_FROM_LOOP COME_FROM_WITH
             COME_FROM_FINALLY ELSE
             LOAD_GENEXPR LOAD_ASSERT LOAD_SETCOMP LOAD_DICTCOMP

@@ -113,6 +113,8 @@ class Python26Parser(Python2Parser):
 
         break_stmt ::= BREAK_LOOP JUMP_BACK
 
+        ifelsestmt ::= testexpr_then c_stmts_opt jf_cf_pop else_suite come_froms
+
         # Semantic actions want else_suitel to be at index 3
         ifelsestmtl ::= testexpr c_stmts_opt jb_cf_pop else_suitel
         ifelsestmtc ::= testexpr c_stmts_opt ja_cf_pop else_suitec

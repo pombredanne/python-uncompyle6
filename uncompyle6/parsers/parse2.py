@@ -136,17 +136,12 @@ class Python2Parser(PythonParser):
 
         _ifstmts_jump ::= return_if_stmts
 
-        iflaststmt ::= testexpr c_stmts_opt JUMP_ABSOLUTE
-
+        iflaststmt  ::= testexpr c_stmts_opt JUMP_ABSOLUTE
         iflaststmtl ::= testexpr c_stmts_opt JUMP_BACK
-
-        ifelsestmt ::= testexpr c_stmts_opt JUMP_FORWARD else_suite COME_FROM
-        ifelsestmt ::= testexpr_then c_stmts_opt jf_cf_pop else_suite come_froms
-
+        ifelsestmt  ::= testexpr c_stmts_opt JUMP_FORWARD else_suite COME_FROM
         ifelsestmtc ::= testexpr c_stmts_opt JUMP_ABSOLUTE else_suitec
 
         ifelsestmtr ::= testexpr return_if_stmts return_stmts
-
         ifelsestmtr ::= testexpr return_if_stmts COME_FROM return_stmts
 
         ifelsestmtl ::= testexpr c_stmts_opt JUMP_BACK else_suitel
