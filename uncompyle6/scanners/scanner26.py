@@ -1,4 +1,4 @@
-#  Copyright (c) 2015, 2016 by Rocky Bernstein
+#  Copyright (c) 2015-2017 by Rocky Bernstein
 #  Copyright (c) 2005 by Dan Pascu <dan@windowmaker.org>
 #  Copyright (c) 2000-2002 by hartmut Goebel <h.goebel@crazy-compilers.com>
 """
@@ -15,10 +15,11 @@ if PYTHON3:
     intern = sys.intern
 
 import uncompyle6.scanners.scanner2 as scan
+from uncompyle6.scanner import L65536
 
 # bytecode verification, verify(), uses JUMP_OPs from here
 from xdis.opcodes import opcode_26
-JUMP_OPs = opcode_26.JUMP_OPs
+JUMP_OPS = opcode_26.JUMP_OPS
 
 class Scanner26(scan.Scanner2):
     def __init__(self, show_asm=False):
@@ -92,7 +93,7 @@ class Scanner26(scan.Scanner2):
             from xdis.bytecode import Bytecode
             bytecode = Bytecode(co, self.opc)
             for instr in bytecode.get_instructions(co):
-                print(instr._disassemble())
+                print(instr.disassemble())
 
         # Container for tokens
         tokens = []
@@ -178,10 +179,9 @@ class Scanner26(scan.Scanner2):
                 oparg = self.get_argument(offset) + extended_arg
                 extended_arg = 0
                 if op == self.opc.EXTENDED_ARG:
-                    raise NotImplementedError
-                    extended_arg = oparg * scan.L65536
+                    extended_arg = oparg * L65536
                     continue
-                if op in self.opc.hasconst:
+                if op in self.opc.CONST_OPS:
                     const = co.co_consts[oparg]
                     # We can't use inspect.iscode() because we may be
                     # using a different version of Python than the
@@ -206,25 +206,25 @@ class Scanner26(scan.Scanner2):
                         pattr = '<code_object ' + const.co_name + '>'
                     else:
                         pattr = const
-                elif op in self.opc.hasname:
+                elif op in self.opc.NAME_OPS:
                     pattr = names[oparg]
-                elif op in self.opc.hasjrel:
+                elif op in self.opc.JREL_OPS:
                     pattr = repr(offset + 3 + oparg)
                     if op == self.opc.JUMP_FORWARD:
                         target = self.get_target(offset)
                         # FIXME: this is a hack to catch stuff like:
                         #   if x: continue
                         # the "continue" is not on a new line.
-                        if len(tokens) and tokens[-1].type == 'JUMP_BACK':
-                            tokens[-1].type = intern('CONTINUE')
+                        if len(tokens) and tokens[-1].kind == 'JUMP_BACK':
+                            tokens[-1].kind = intern('CONTINUE')
 
-                elif op in self.opc.hasjabs:
+                elif op in self.opc.JABS_OPS:
                     pattr = repr(oparg)
-                elif op in self.opc.haslocal:
+                elif op in self.opc.LOCAL_OPS:
                     pattr = varnames[oparg]
-                elif op in self.opc.hascompare:
+                elif op in self.opc.COMPARE_OPS:
                     pattr = self.opc.cmp_op[oparg]
-                elif op in self.opc.hasfree:
+                elif op in self.opc.FREE_OPS:
                     pattr = free[oparg]
             if op in self.varargs_ops:
                 # CE - Hack for >= 2.5
@@ -256,18 +256,18 @@ class Scanner26(scan.Scanner2):
                         and self.code[offset+3] not in (self.opc.END_FINALLY,
                                                           self.opc.POP_BLOCK)):
                         if ((offset in self.linestartoffsets and
-                            tokens[-1].type == 'JUMP_BACK')
+                            tokens[-1].kind == 'JUMP_BACK')
                             or offset not in self.not_continue):
                             op_name = 'CONTINUE'
                     else:
                         # FIXME: this is a hack to catch stuff like:
                         #   if x: continue
                         # the "continue" is not on a new line.
-                        if tokens[-1].type == 'JUMP_BACK':
+                        if tokens[-1].kind == 'JUMP_BACK':
                             # We need 'intern' since we have
                             # already have processed the previous
                             # token.
-                            tokens[-1].type = intern('CONTINUE')
+                            tokens[-1].kind = intern('CONTINUE')
 
             elif op == self.opc.LOAD_GLOBAL:
                 if offset in self.load_asserts:

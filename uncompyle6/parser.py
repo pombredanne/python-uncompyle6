@@ -11,9 +11,9 @@ from __future__ import print_function
 import sys
 
 from xdis.code import iscode
+from xdis.magics import py_str2float
 from spark_parser import GenericASTBuilder, DEFAULT_DEBUG as PARSER_DEFAULT_DEBUG
 from uncompyle6.show import maybe_show_asm
-
 
 class ParserError(Exception):
     def __init__(self, token, offset):
@@ -30,13 +30,16 @@ class PythonParser(GenericASTBuilder):
 
     def __init__(self, AST, start, debug):
         super(PythonParser, self).__init__(AST, start, debug)
-        self.collect = frozenset(
-            ['stmts', 'except_stmts', '_stmts',
-             'exprlist', 'kvlist', 'kwargs', 'come_froms', '_come_from',
-              # Python < 3
-             'print_items',
-             # PyPy:
-             'kvlist_n'])
+        # FIXME: customize per python parser version
+        nt_list = [
+            'stmts', 'except_stmts', '_stmts', 'load_attrs',
+            'exprlist', 'kvlist', 'kwargs', 'come_froms', '_come_from',
+            'importlist',
+            # Python < 3
+            'print_items',
+            # PyPy:
+            'kvlist_n']
+        self.collect = frozenset(nt_list)
 
     def ast_first_offset(self, ast):
         if hasattr(ast, 'offset'):
@@ -44,21 +47,25 @@ class PythonParser(GenericASTBuilder):
         else:
             return self.ast_first_offset(ast[0])
 
-    def add_unique_rule(self, rule, opname, count, customize):
+    def add_unique_rule(self, rule, opname, arg_count, customize):
         """Add rule to grammar, but only if it hasn't been added previously
-           opname and count are used in the customize() semantic the actions
-           to add the semantic action rule. Often, count is not used.
+           opname and stack_count are used in the customize() semantic
+           the actions to add the semantic action rule. Stack_count is
+           used in custom opcodes like MAKE_FUNCTION to indicate how
+           many arguments it has. Often it is not used.
         """
         if rule not in self.new_rules:
             # print("XXX ", rule) # debug
             self.new_rules.add(rule)
             self.addRule(rule, nop_func)
-            customize[opname] = count
+            customize[opname] = arg_count
             pass
         return
 
     def add_unique_rules(self, rules, customize):
-        """Add rules (a list of string) to grammar
+        """Add rules (a list of string) to grammar. Note that
+        the rules must not be those that set arg_count in the
+        custom dictionary.
         """
         for rule in rules:
             if len(rule) == 0:
@@ -68,7 +75,9 @@ class PythonParser(GenericASTBuilder):
         return
 
     def add_unique_doc_rules(self, rules_str, customize):
-        """Add rules (a docstring-like list of rules) to grammar
+        """Add rules (a docstring-like list of rules) to grammar.
+        Note that the rules must not be those that set arg_count in the
+        custom dictionary.
         """
         rules = [r.strip() for r in rules_str.split("\n")]
         self.add_unique_rules(rules, customize)
@@ -85,14 +94,14 @@ class PythonParser(GenericASTBuilder):
         for i in dir(self):
             setattr(self, i, None)
 
-    def debug_reduce(self, rule, tokens, parent, i):
+    def debug_reduce(self, rule, tokens, parent, last_token_pos):
         """Customized format and print for our kind of tokens
         which gets called in debugging grammar reduce rules
         """
         def fix(c):
             s = str(c)
-            i = s.find('_')
-            return s if i == -1 else s[:i]
+            last_token_pos = s.find('_')
+            return s if last_token_pos == -1 else s[:last_token_pos]
 
         prefix = ''
         if parent and tokens:
@@ -104,31 +113,35 @@ class PythonParser(GenericASTBuilder):
             if hasattr(p_token, 'offset'):
                 prefix += "%3s" % fix(p_token.offset)
                 if len(rule[1]) > 1:
-                    prefix += '-%-3s ' % fix(tokens[i-1].offset)
+                    prefix += '-%-3s ' % fix(tokens[last_token_pos-1].offset)
                 else:
                     prefix += '     '
         else:
             prefix = '               '
 
-        print("%s%s ::= %s" % (prefix, rule[0], ' '.join(rule[1])))
+        print("%s%s ::= %s (%d)" % (prefix, rule[0], ' '.join(rule[1]), last_token_pos))
 
     def error(self, instructions, index):
         # Find the last line boundary
+        start, finish = -1, -1
         for start in range(index, -1, -1):
             if instructions[start].linestart:  break
             pass
         for finish in range(index+1, len(instructions)):
             if instructions[finish].linestart:  break
             pass
-        err_token = instructions[index]
-        print("Instruction context:")
-        for i in range(start, finish):
-            indent = '   ' if i != index else '-> '
-            print("%s%s" % (indent, instructions[i]))
-        raise ParserError(err_token, err_token.offset)
+        if start > 0:
+            err_token = instructions[index]
+            print("Instruction context:")
+            for i in range(start, finish):
+                indent = '   ' if i != index else '-> '
+                print("%s%s" % (indent, instructions[i]))
+            raise ParserError(err_token, err_token.offset)
+        else:
+            raise ParserError(None, -1)
 
     def typestring(self, token):
-        return token.type
+        return token.kind
 
     def nonterminal(self, nt, args):
         if nt in self.collect and len(args) > 1:
@@ -250,8 +263,15 @@ class PythonParser(GenericASTBuilder):
 
         stmt ::= return_stmt
         return_stmt ::= ret_expr RETURN_VALUE
+        return_stmt_lambda ::= ret_expr RETURN_VALUE_LAMBDA
+
+        # return_stmts are a sequence of statements that ends in a RETURN statement.
+        # In later Python versions with jump optimization, this can cause JUMPs
+        # that would normally appear to be omitted.
+
         return_stmts ::= return_stmt
         return_stmts ::= _stmts return_stmt
+
         """
         pass
 
@@ -385,15 +405,15 @@ class PythonParser(GenericASTBuilder):
         stmt ::= importstar
         stmt ::= importmultiple
 
-        importlist2 ::= importlist2 import_as
-        importlist2 ::= import_as
-        import_as ::= IMPORT_NAME designator
-        import_as ::= IMPORT_NAME load_attrs designator
-        import_as ::= IMPORT_FROM designator
+        importlist ::= importlist import_as
+        importlist ::= import_as
+        import_as  ::= IMPORT_NAME designator
+        import_as  ::= IMPORT_NAME load_attrs designator
+        import_as  ::= IMPORT_FROM designator
 
         importstmt ::= LOAD_CONST LOAD_CONST import_as
         importstar ::= LOAD_CONST LOAD_CONST IMPORT_NAME IMPORT_STAR
-        importfrom ::= LOAD_CONST LOAD_CONST IMPORT_NAME importlist2 POP_TOP
+        importfrom ::= LOAD_CONST LOAD_CONST IMPORT_NAME importlist POP_TOP
         importmultiple ::= LOAD_CONST LOAD_CONST import_as imports_cont
 
         imports_cont ::= imports_cont import_cont
@@ -401,8 +421,7 @@ class PythonParser(GenericASTBuilder):
         import_cont ::= LOAD_CONST LOAD_CONST import_as_cont
         import_as_cont ::= IMPORT_FROM designator
 
-        load_attrs ::= LOAD_ATTR
-        load_attrs ::= load_attrs LOAD_ATTR
+        load_attrs ::= LOAD_ATTR+
         """
 
     def p_list_comprehension(self, args):
@@ -466,27 +485,24 @@ class PythonParser(GenericASTBuilder):
         expr ::= buildslice3
         expr ::= yield
 
-        # Possibly Python < 2.3
-        # expr ::= SET_LINENO
-
         binary_expr ::= expr expr binary_op
-        binary_op ::= BINARY_ADD
-        binary_op ::= BINARY_MULTIPLY
-        binary_op ::= BINARY_AND
-        binary_op ::= BINARY_OR
-        binary_op ::= BINARY_XOR
-        binary_op ::= BINARY_SUBTRACT
-        binary_op ::= BINARY_TRUE_DIVIDE
-        binary_op ::= BINARY_FLOOR_DIVIDE
-        binary_op ::= BINARY_MODULO
-        binary_op ::= BINARY_LSHIFT
-        binary_op ::= BINARY_RSHIFT
-        binary_op ::= BINARY_POWER
+        binary_op   ::= BINARY_ADD
+        binary_op   ::= BINARY_MULTIPLY
+        binary_op   ::= BINARY_AND
+        binary_op   ::= BINARY_OR
+        binary_op   ::= BINARY_XOR
+        binary_op   ::= BINARY_SUBTRACT
+        binary_op   ::= BINARY_TRUE_DIVIDE
+        binary_op   ::= BINARY_FLOOR_DIVIDE
+        binary_op   ::= BINARY_MODULO
+        binary_op   ::= BINARY_LSHIFT
+        binary_op   ::= BINARY_RSHIFT
+        binary_op   ::= BINARY_POWER
 
-        unary_expr ::= expr unary_op
-        unary_op ::= UNARY_POSITIVE
-        unary_op ::= UNARY_NEGATIVE
-        unary_op ::= UNARY_INVERT
+        unary_expr  ::= expr unary_op
+        unary_op    ::= UNARY_POSITIVE
+        unary_op    ::= UNARY_NEGATIVE
+        unary_op    ::= UNARY_INVERT
 
         unary_not ::= expr UNARY_NOT
 
@@ -509,8 +525,12 @@ class PythonParser(GenericASTBuilder):
         expr ::= conditional
         conditional ::= expr jmp_false expr JUMP_FORWARD expr COME_FROM
         conditional ::= expr jmp_false expr JUMP_ABSOLUTE expr
+
         expr ::= conditionalnot
-        conditionalnot ::= expr jmp_true expr _jump expr COME_FROM
+        conditionalnot  ::= expr jmp_true expr _jump expr COME_FROM
+
+        expr            ::= conditionalTrue
+        conditionalTrue ::= expr JUMP_FORWARD expr COME_FROM
 
         ret_expr ::= expr
         ret_expr ::= ret_and
@@ -523,7 +543,9 @@ class PythonParser(GenericASTBuilder):
         stmt ::= return_lambda
         stmt ::= conditional_lambda
 
-        return_lambda ::= ret_expr RETURN_VALUE LAMBDA_MARKER
+        return_lambda ::= ret_expr RETURN_VALUE_LAMBDA LAMBDA_MARKER
+        return_lambda ::= ret_expr RETURN_VALUE_LAMBDA
+
         conditional_lambda ::= expr jmp_false return_if_stmt return_stmt LAMBDA_MARKER
 
         cmp ::= cmp_list
@@ -602,7 +624,15 @@ def get_python_parser(
     explanation of the different modes.
     """
 
+    # If version is a string, turn that into the corresponding float.
+    if isinstance(version, str):
+        version = py_str2float(version)
+
     # FIXME: there has to be a better way...
+    # We could do this as a table lookup, but that would force us
+    # in import all of the parsers all of the time. Perhaps there is
+    # a lazy way of doing the import?
+
     if version < 3.0:
         if version == 1.5:
             import uncompyle6.parsers.parse15 as parse15
@@ -711,7 +741,7 @@ def get_python_parser(
             else:
                 p = parse3.Python3ParserSingle(debug_parser)
     p.version = version
-    # p.dumpGrammar() # debug
+    # p.dump_grammar() # debug
     return p
 
 class PythonParserSingle(PythonParser):
@@ -755,6 +785,7 @@ def python_parser(version, co, out=sys.stdout, showasm=False,
 if __name__ == '__main__':
     def parse_test(co):
         from uncompyle6 import PYTHON_VERSION, IS_PYPY
+        ast = python_parser('2.7.13', co, showasm=True, is_pypy=True)
         ast = python_parser(PYTHON_VERSION, co, showasm=True, is_pypy=IS_PYPY)
         print(ast)
         return

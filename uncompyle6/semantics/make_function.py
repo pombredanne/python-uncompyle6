@@ -1,13 +1,14 @@
-#  Copyright (c) 2015, 2016 by Rocky Bernstein
+#  Copyright (c) 2015-2017 by Rocky Bernstein
 #  Copyright (c) 2000-2002 by hartmut Goebel <h.goebel@crazy-compilers.com>
 """
 All the crazy things we have to do to handle Python functions
 """
-from xdis.code import iscode
+from xdis.code import iscode, code_has_star_arg, code_has_star_star_arg
 from uncompyle6.scanner import Code
 from uncompyle6.parsers.astnode import AST
 from uncompyle6 import PYTHON3
 from uncompyle6.semantics.parser_error import ParserError
+from uncompyle6.parser import ParserError as ParserError2
 from uncompyle6.semantics.helper import print_docstring
 
 if PYTHON3:
@@ -22,7 +23,7 @@ def find_all_globals(node, globs):
     for n in node:
         if isinstance(n, AST):
             globs = find_all_globals(n, globs)
-        elif n.type in ('STORE_GLOBAL', 'DELETE_GLOBAL', 'LOAD_GLOBAL'):
+        elif n.kind in ('STORE_GLOBAL', 'DELETE_GLOBAL', 'LOAD_GLOBAL'):
             globs.add(n.pattr)
     return globs
 
@@ -31,7 +32,7 @@ def find_globals(node, globs):
     for n in node:
         if isinstance(n, AST):
             globs = find_globals(n, globs)
-        elif n.type in ('STORE_GLOBAL', 'DELETE_GLOBAL'):
+        elif n.kind in ('STORE_GLOBAL', 'DELETE_GLOBAL'):
             globs.add(n.pattr)
     return globs
 
@@ -41,7 +42,7 @@ def find_none(node):
             if n not in ('return_stmt', 'return_if_stmt'):
                 if find_none(n):
                     return True
-        elif n.type == 'LOAD_CONST' and n.pattr is None:
+        elif n.kind == 'LOAD_CONST' and n.pattr is None:
             return True
     return False
 
@@ -69,7 +70,7 @@ def make_function3_annotate(self, node, isLambda, nested=1,
             return name
 
     # MAKE_FUNCTION_... or MAKE_CLOSURE_...
-    assert node[-1].type.startswith('MAKE_')
+    assert node[-1].kind.startswith('MAKE_')
 
     annotate_tuple = None
     for annotate_last in range(len(node)-1, -1, -1):
@@ -85,9 +86,8 @@ def make_function3_annotate(self, node, isLambda, nested=1,
         i = -1
         j = annotate_last-1
         l = -len(node)
-        while j >= l and node[j].type in ('annotate_arg' 'annotate_tuple'):
-            annotate_args[annotate_tup[i]] = (node[j][0].attr,
-                                              node[j][0] == 'LOAD_CONST')
+        while j >= l and node[j].kind in ('annotate_arg' 'annotate_tuple'):
+            annotate_args[annotate_tup[i]] = node[j][0]
             i -= 1
             j -= 1
 
@@ -96,9 +96,12 @@ def make_function3_annotate(self, node, isLambda, nested=1,
         # positional args are before kwargs
         defparams = node[:args_node.attr[0]]
         pos_args, kw_args, annotate_argc  = args_node.attr
+        if 'return' in annotate_args.keys():
+            annotate_argc = len(annotate_args) - 1
     else:
         defparams = node[:args_node.attr]
         kw_args  = 0
+        annotate_argc = 0
         pass
 
     if 3.0 <= self.version <= 3.2:
@@ -109,7 +112,7 @@ def make_function3_annotate(self, node, isLambda, nested=1,
         lambda_index = None
 
     if lambda_index and isLambda and iscode(node[lambda_index].attr):
-        assert node[lambda_index].type == 'LOAD_LAMBDA'
+        assert node[lambda_index].kind == 'LOAD_LAMBDA'
         code = node[lambda_index].attr
     else:
         code = codeNode.attr
@@ -126,9 +129,10 @@ def make_function3_annotate(self, node, isLambda, nested=1,
                              code._customize,
                              isLambda = isLambda,
                              noneInNames = ('None' in code.co_names))
-    except ParserError as p:
+    except (ParserError, ParserError2) as p:
         self.write(str(p))
-        self.ERROR = p
+        if not self.tolerate_errors:
+            self.ERROR = p
         return
 
     kw_pairs = args_node.attr[1]
@@ -144,12 +148,15 @@ def make_function3_annotate(self, node, isLambda, nested=1,
     indent = ' ' * l
     line_number = self.line_number
 
-    if 4 & code.co_flags:	# flag 2 -> variable number of args
+    if code_has_star_arg(code):
         self.write('*%s' % code.co_varnames[argc + kw_pairs])
         argc += 1
 
     i = len(paramnames) - len(defparams)
     suffix = ''
+
+    no_paramnames = len(paramnames[:i]) == 0
+
     for param in paramnames[:i]:
         self.write(suffix, param)
         suffix = ', '
@@ -169,6 +176,7 @@ def make_function3_annotate(self, node, isLambda, nested=1,
     suffix = ', ' if i > 0 else ''
     for n in node:
         if n == 'pos_arg':
+            no_paramnames = False
             self.write(suffix)
             param = paramnames[i]
             self.write(param)
@@ -176,7 +184,11 @@ def make_function3_annotate(self, node, isLambda, nested=1,
                 aa = annotate_args[param]
                 if isinstance(aa, tuple):
                     aa = aa[0]
-                self.write(': "%s"' % aa)
+                    self.write(': "%s"' % aa)
+                elif isinstance(aa, AST):
+                    self.write(': ')
+                    self.preorder(aa)
+
             self.write('=')
             i += 1
             self.preorder(n)
@@ -186,45 +198,68 @@ def make_function3_annotate(self, node, isLambda, nested=1,
             else:
                 suffix = ', '
 
-    # self.println(indent, '#flags:\t', int(code.co_flags))
-    if kw_args > 0:
-        if not (4 & code.co_flags):
-            if argc > 0:
-                self.write(", *, ")
-            else:
-                self.write("*, ")
-            pass
-        else:
-            self.write(", ")
 
-        kwargs = node[0]
-        last = len(kwargs)-1
-        i = 0
-        for n in node[0]:
-            if n == 'kwarg':
-                if (line_number != self.line_number):
-                    self.write("\n" + indent)
-                    line_number = self.line_number
-                self.write('%s=' % n[0].pattr)
-                self.preorder(n[1])
-                if i < last:
-                    self.write(', ')
-                i += 1
+    # self.println(indent, '#flags:\t', int(code.co_flags))
+    if kw_args + annotate_argc > 0:
+        if no_paramnames:
+            if not code_has_star_arg(code):
+                if argc > 0:
+                    self.write(", *, ")
+                else:
+                    self.write("*, ")
+                pass
+            else:
+                self.write(", ")
+
+            kwargs = node[0]
+            last = len(kwargs)-1
+            i = 0
+            for n in node[0]:
+                if n == 'kwarg':
+                    if (line_number != self.line_number):
+                        self.write("\n" + indent)
+                        line_number = self.line_number
+                    self.write('%s=' % n[0].pattr)
+                    self.preorder(n[1])
+                    if i < last:
+                        self.write(', ')
+                    i += 1
+                    pass
+                pass
+            annotate_args = []
+            for n in node:
+                if n == 'annotate_arg':
+                    annotate_args.append(n[0])
+                elif n == 'annotate_tuple':
+                    t = n[0].attr
+                    if t[-1] == 'return':
+                        t = t[0:-1]
+                        annotate_args = annotate_args[:-1]
+                        pass
+                    last = len(annotate_args) - 1
+                    for i in range(len(annotate_args)):
+                        self.write("%s: " % (t[i]))
+                        self.preorder(annotate_args[i])
+                        if i < last:
+                            self.write(', ')
+                            pass
+                        pass
+                    break
                 pass
             pass
-        pass
 
-    if 8 & code.co_flags:	# flag 3 -> keyword args
-        if argc > 0:
-            self.write(', ')
-        self.write('**%s' % code.co_varnames[argc + kw_pairs])
+
+        if code_has_star_star_arg(code):
+            if argc > 0:
+                self.write(', ')
+            self.write('**%s' % code.co_varnames[argc + kw_pairs])
 
     if isLambda:
         self.write(": ")
     else:
         self.write(')')
         if 'return' in annotate_tuple[0].attr:
-            if (line_number != self.line_number):
+            if (line_number != self.line_number) and not no_paramnames:
                 self.write("\n" + indent)
                 line_number = self.line_number
             self.write(' -> ')
@@ -287,7 +322,7 @@ def make_function2(self, node, isLambda, nested=1, codeNode=None):
             return name
 
     # MAKE_FUNCTION_... or MAKE_CLOSURE_...
-    assert node[-1].type.startswith('MAKE_')
+    assert node[-1].kind.startswith('MAKE_')
 
     args_node = node[-1]
     if isinstance(args_node.attr, tuple):
@@ -297,12 +332,13 @@ def make_function2(self, node, isLambda, nested=1, codeNode=None):
     else:
         defparams = node[:args_node.attr]
         kw_args  = 0
+        annotate_argc  = 0
         pass
 
     lambda_index = None
 
     if lambda_index and isLambda and iscode(node[lambda_index].attr):
-        assert node[lambda_index].type == 'LOAD_LAMBDA'
+        assert node[lambda_index].kind == 'LOAD_LAMBDA'
         code = node[lambda_index].attr
     else:
         code = codeNode.attr
@@ -322,9 +358,10 @@ def make_function2(self, node, isLambda, nested=1, codeNode=None):
                              code._customize,
                              isLambda = isLambda,
                              noneInNames = ('None' in code.co_names))
-    except ParserError as p:
+    except (ParserError, ParserError2) as p:
         self.write(str(p))
-        self.ERROR = p
+        if not self.tolerate_errors:
+            self.ERROR = p
         return
 
     kw_pairs = args_node.attr[1] if self.version >= 3.0 else 0
@@ -335,7 +372,7 @@ def make_function2(self, node, isLambda, nested=1, codeNode=None):
               name, default in zip_longest(paramnames, defparams, fillvalue=None)]
     params.reverse() # back to correct order
 
-    if 4 & code.co_flags:	# flag 2 -> variable number of args
+    if code_has_star_arg(code):
         params.append('*%s' % code.co_varnames[argc])
         argc += 1
 
@@ -363,10 +400,11 @@ def make_function2(self, node, isLambda, nested=1, codeNode=None):
             break
         pass
 
-    if 8 & code.co_flags:	# flag 3 -> keyword args
+    if code_has_star_star_arg(code):
         if argc > 0:
             self.write(', ')
-        self.write('**%s' % code.co_varnames[argc + kw_pairs])
+        if argc + kw_pairs > 0:
+            self.write('**%s' % code.co_varnames[argc + kw_pairs])
 
     if isLambda:
         self.write(": ")
@@ -392,10 +430,34 @@ def make_function2(self, node, isLambda, nested=1, codeNode=None):
 
 
 def make_function3(self, node, isLambda, nested=1, codeNode=None):
-    """Dump function definition, doc string, and function body."""
+    """Dump function definition, doc string, and function body in
+      Python version 3.0 and above
+    """
 
-    # FIXME: call make_function3 if we are self.version >= 3.0
-    # and then simplify the below.
+    # For Python 3.3, the evaluation stack in MAKE_FUNCTION is:
+
+    # * default argument objects in positional order
+    # * pairs of name and default argument, with the name just below
+    #   the object on the stack, for keyword-only parameters
+    # * parameter annotation objects
+    # * a tuple listing the parameter names for the annotations
+    #   (only if there are ony annotation objects)
+    # * the code associated with the function (at TOS1)
+    # * the qualified name of the function (at TOS)
+
+    # For Python 3.0 .. 3.2 the evaluation stack is:
+    # The function object is defined to have argc default parameters,
+    # which are found below TOS.
+    # * first come positional args in the order they are given in the source,
+    # * next come the keyword args in the order they given in the source,
+    # * finally is the code associated with the function (at TOS)
+    #
+    # Note: There is no qualified name at TOS
+
+    # MAKE_CLOSURE adds an additional closure slot
+
+    # Thank you, Python, for a such a well-thought out system that has
+    # changed 4 or so times.
 
     def build_param(ast, name, default):
         """build parameters:
@@ -413,22 +475,11 @@ def make_function3(self, node, isLambda, nested=1, codeNode=None):
             return name
 
     # MAKE_FUNCTION_... or MAKE_CLOSURE_...
-    assert node[-1].type.startswith('MAKE_')
+    assert node[-1].kind.startswith('MAKE_')
 
-    args_node = node[-1]
-    if isinstance(args_node.attr, tuple):
-        if self.version <= 3.3 and len(node) > 2 and node[-3] != 'LOAD_LAMBDA':
-            # positional args are after kwargs
-            defparams = node[1:args_node.attr[0]+1]
-        else:
-            # positional args are before kwargs
-            defparams = node[:args_node.attr[0]]
-        pos_args, kw_args, annotate_argc  = args_node.attr
-    else:
-        defparams = node[:args_node.attr]
-        kw_args  = 0
-        pass
 
+    # Python 3.3+ adds a qualified name at TOS (-1)
+    # moving down the LOAD_LAMBDA instruction
     if 3.0 <= self.version <= 3.2:
         lambda_index = -2
     elif 3.03 <= self.version:
@@ -436,8 +487,33 @@ def make_function3(self, node, isLambda, nested=1, codeNode=None):
     else:
         lambda_index = None
 
+    args_node = node[-1]
+    if isinstance(args_node.attr, tuple):
+        pos_args, kw_args, annotate_argc  = args_node.attr
+        if self.version <= 3.3 and len(node) > 2 and node[lambda_index] != 'LOAD_LAMBDA':
+            # args are after kwargs; kwargs are bundled as one node
+            defparams = node[1:args_node.attr[0]+1]
+        else:
+            # args are before kwargs; kwags as bundled as one node
+            defparams = node[:args_node.attr[0]]
+    else:
+        if self.version < 3.6:
+            defparams = node[:args_node.attr]
+        else:
+            default, kw, annotate, closure = args_node.attr
+            # FIXME: start here for Python 3.6 and above:
+            defparams = []
+            # if default:
+            #     defparams = node[-(2 +  kw + annotate  + closure)]
+            # else:
+            #     defparams = []
+
+        kw_args  = 0
+        pass
+
+
     if lambda_index and isLambda and iscode(node[lambda_index].attr):
-        assert node[lambda_index].type == 'LOAD_LAMBDA'
+        assert node[lambda_index].kind == 'LOAD_LAMBDA'
         code = node[lambda_index].attr
     else:
         code = codeNode.attr
@@ -450,7 +526,7 @@ def make_function3(self, node, isLambda, nested=1, codeNode=None):
     paramnames = list(code.co_varnames[:argc])
 
     # defaults are for last n parameters, thus reverse
-    if not 3.0 <= self.version <= 3.2:
+    if not 3.0 <= self.version <= 3.1:
         paramnames.reverse(); defparams.reverse()
 
     try:
@@ -458,64 +534,34 @@ def make_function3(self, node, isLambda, nested=1, codeNode=None):
                              code._customize,
                              isLambda = isLambda,
                              noneInNames = ('None' in code.co_names))
-    except ParserError as p:
+    except (ParserError, ParserError2) as p:
         self.write(str(p))
-        self.ERROR = p
+        if not self.tolerate_errors:
+            self.ERROR = p
         return
 
     kw_pairs = args_node.attr[1] if self.version >= 3.0 else 0
-    indent = self.indent
 
     # build parameters
-    if self.version != 3.2:
-        params = [build_param(ast, name, default) for
-                  name, default in zip_longest(paramnames, defparams, fillvalue=None)]
+    params = [build_param(ast, name, d) for
+              name, d in zip_longest(paramnames, defparams, fillvalue=None)]
+
+    if not 3.0 <= self.version <= 3.1:
         params.reverse() # back to correct order
 
-        if 4 & code.co_flags:	# flag 2 -> variable number of args
-            if self.version > 3.0:
-                params.append('*%s' % code.co_varnames[argc + kw_pairs])
-            else:
-                params.append('*%s' % code.co_varnames[argc])
-            argc += 1
-
-        # dump parameter list (with default values)
-        if isLambda:
-            self.write("lambda ", ", ".join(params))
+    if code_has_star_arg(code):
+        if self.version > 3.0:
+            params.append('*%s' % code.co_varnames[argc + kw_pairs])
         else:
-            self.write("(", ", ".join(params))
-        # self.println(indent, '#flags:\t', int(code.co_flags))
+            params.append('*%s' % code.co_varnames[argc])
+        argc += 1
 
+    # dump parameter list (with default values)
+    if isLambda:
+        self.write("lambda ", ", ".join(params))
     else:
-        if isLambda:
-            self.write("lambda ")
-        else:
-            self.write("(")
-            pass
-
-        last_line = self.f.getvalue().split("\n")[-1]
-        l = len(last_line)
-        indent = ' ' * l
-        line_number = self.line_number
-
-        if 4 & code.co_flags:	# flag 2 -> variable number of args
-            self.write('*%s' % code.co_varnames[argc + kw_pairs])
-            argc += 1
-
-        i = len(paramnames) - len(defparams)
-        self.write(", ".join(paramnames[:i]))
-        suffix = ', ' if i > 0 else ''
-        for n in node:
-            if n == 'pos_arg':
-                self.write(suffix)
-                self.write(paramnames[i] + '=')
-                i += 1
-                self.preorder(n)
-                if (line_number != self.line_number):
-                    suffix = ",\n" + indent
-                    line_number = self.line_number
-                else:
-                    suffix = ', '
+        self.write("(", ", ".join(params))
+    # self.println(indent, '#flags:\t', int(code.co_flags))
 
     if kw_args > 0:
         if not (4 & code.co_flags):
@@ -531,7 +577,7 @@ def make_function3(self, node, isLambda, nested=1, codeNode=None):
             for n in node:
                 if n == 'pos_arg':
                     continue
-                elif self.version >= 3.4 and n.type != 'kwargs':
+                elif self.version >= 3.4 and not (n.kind in ('kwargs', 'kwarg')):
                     continue
                 else:
                     self.preorder(n)
@@ -552,7 +598,7 @@ def make_function3(self, node, isLambda, nested=1, codeNode=None):
             pass
         pass
 
-    if 8 & code.co_flags:	# flag 3 -> keyword args
+    if code_has_star_star_arg(code):
         if argc > 0:
             self.write(', ')
         self.write('**%s' % code.co_varnames[argc + kw_pairs])

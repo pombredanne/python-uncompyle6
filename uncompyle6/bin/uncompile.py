@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # Mode: -*- python -*-
 #
-# Copyright (c) 2015-2016 by Rocky Bernstein
+# Copyright (c) 2015-2017 by Rocky Bernstein
 # Copyright (c) 2000-2002 by hartmut Goebel <h.goebel@crazy-compilers.com>
 #
 from __future__ import print_function
 import sys, os, getopt, time
 
-program, ext = os.path.splitext(os.path.basename(__file__))
+program = 'uncompyle6'
 
 __doc__ = """
 Usage:
@@ -175,7 +175,7 @@ def main_bin():
         try:
             from Queue import Empty
         except ImportError:
-            from Queue import Empty
+            from queue import Empty
 
         fqueue = Queue(len(files)+numproc)
         for f in files:

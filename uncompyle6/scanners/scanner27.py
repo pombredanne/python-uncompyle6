@@ -1,4 +1,4 @@
-# Copyright (c) 2015, 2016 by Rocky Bernstein
+# Copyright (c) 2015-2017 by Rocky Bernstein
 """
 Python 2.7 bytecode ingester.
 
@@ -18,7 +18,7 @@ if PYTHON3:
 
 # bytecode verification, verify(), uses JUMP_OPs from here
 from xdis.opcodes import opcode_27
-JUMP_OPs = opcode_27.JUMP_OPs
+JUMP_OPS = opcode_27.JUMP_OPs
 
 class Scanner27(Scanner2):
     def __init__(self, show_asm=False, is_pypy=False):
@@ -48,7 +48,7 @@ class Scanner27(Scanner2):
             self.opc.DELETE_SLICE_2,   self.opc.DELETE_SLICE_3,
         ])
 
-        # opcodes with expect a variable number pushed values whose
+        # opcodes which expect a variable number pushed values and whose
         # count is in the opcode. For parsing we generally change the
         # opcode name to include that number.
         varargs_ops = set([
@@ -94,9 +94,9 @@ class Scanner27(Scanner2):
             # the "continue" is not on a new line.
             n = len(tokens)
             if (n > 2 and
-                tokens[-1].type == 'JUMP_BACK' and
+                tokens[-1].kind == 'JUMP_BACK' and
                 self.code[offset+3] == self.opc.END_FINALLY):
-                tokens[-1].type = intern('CONTINUE')
+                tokens[-1].kind = intern('CONTINUE')
 
     pass
 

@@ -1,6 +1,9 @@
-#  Copyright (c) 2015-2016 by Rocky Bernstein
+#  Copyright (c) 2015-2017 by Rocky Bernstein
 """
-Python 3.4 bytecode scanner/deparser
+Python 3.4 bytecode decompiler scanner
+
+Does some additional massaging of xdis-disassembled instructions to
+make things easier for decompilation.
 
 This sets up opcodes Python's 3.4 and calls a generalized
 scanner routine for Python 3.
@@ -11,7 +14,7 @@ from __future__ import print_function
 from xdis.opcodes import opcode_34 as opc
 
 # bytecode verification, verify(), uses JUMP_OPs from here
-JUMP_OPs = map(lambda op: opc.opname[op], opc.hasjrel + opc.hasjabs)
+JUMP_OPS = opc.JUMP_OPS
 
 
 from uncompyle6.scanners.scanner3 import Scanner3

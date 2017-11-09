@@ -3,7 +3,7 @@ PHONY=check clean dist distclean test test-unit test-functional rmChangeLog clea
 GIT2CL ?= git2cl
 PYTHON ?= python
 
-PYTHON_VERSION = $(shell $(PYTHON) -V | cut -d ' ' -f 2 | cut -d'.' -f1,2)
+PYTHON_VERSION = $(shell $(PYTHON) -V 2>&1 | cut -d ' ' -f 2 | cut -d'.' -f1,2)
 NATIVE_CHECK = check-$(PYTHON_VERSION)
 
 # Set COMPILE='--compile' to force compilation before check
@@ -16,11 +16,10 @@ check-short:
 
 # Run all tests
 check:
-	@$(PYTHON) -V && PYTHON_VERSION=`$(PYTHON) -V 2>&1 | cut -d ' ' -f 2 | cut -d'.' -f1,2`; \
-	$(MAKE) check-$$PYTHON_VERSION
+	$(MAKE) check-$(PYTHON_VERSION)
 
 #: Run working tests from Python 2.6 or 2.7
-check-2.6 check-2.7: check-bytecode-2 check-bytecode-3 check-bytecode-1  check-2.7-ok
+check-2.6 check-2.7: check-bytecode-2 check-bytecode-3 check-bytecode-1 check-native-short
 
 #: Run working tests from Python 3.0
 check-3.0: check-bytecode
@@ -36,11 +35,11 @@ check-3.2: check-bytecode
 
 #: Run working tests from Python 3.3
 check-3.3: check-bytecode
-	$(PYTHON) test_pythonlib.py --bytecode-3.3 --verify $(COMPILE)
+	$(PYTHON) test_pythonlib.py --bytecode-3.3 --weak-verify $(COMPILE)
 
 #: Run working tests from Python 3.4
 check-3.4: check-bytecode check-3.4-ok check-2.7-ok
-	$(PYTHON) test_pythonlib.py --bytecode-3.4 --verify $(COMPILE)
+	$(PYTHON) test_pythonlib.py --bytecode-3.4 --weak-verify $(COMPILE)
 
 #: Run working tests from Python 3.5
 check-3.5: check-bytecode
@@ -48,7 +47,11 @@ check-3.5: check-bytecode
 
 #: Run working tests from Python 3.6
 check-3.6: check-bytecode
-	$(PYTHON) test_pythonlib.py --bytecode-3.6 --verify $(COMPILE)
+	$(PYTHON) test_pythonlib.py --bytecode-3.6 --weak-verify $(COMPILE)
+
+# FIXME
+#: this is called when running under pypy3.5-5.8.0 or pypy2-5.6.0
+5.8 5.6:
 
 #: Check deparsing only, but from a different Python version
 check-disasm:
@@ -68,7 +71,7 @@ check-bytecode-2:
 check-bytecode-3:
 	$(PYTHON) test_pythonlib.py --bytecode-3.0 \
        --bytecode-3.1 --bytecode-3.2 --bytecode-3.3 \
-       --bytecode-3.4 --bytecode-3.5 --bytecode-pypy3.2
+       --bytecode-3.4 --bytecode-3.5 --bytecode-3.6 --bytecode-pypy3.2
 
 #: Check deparsing bytecode that works running Python 2 and Python 3
 check-bytecode: check-bytecode-3

@@ -11,7 +11,7 @@ RM      ?= rm
 LINT    = flake8
 
 #EXTRA_DIST=ipython/ipy_trepan.py trepan
-PHONY=all check clean pytest check-long dist distclean lint flake8 test rmChangeLog clean_pyc
+PHONY=all check clean distcheck pytest check-long dist distclean lint flake8 test rmChangeLog clean_pyc
 
 TEST_TYPES=check-long check-short check-2.7 check-3.4
 
@@ -36,13 +36,15 @@ check-2.7 check-3.3 check-3.4: pytest
 check-3.0 check-3.1 check-3.2 check-3.5 check-3.6:
 	$(MAKE) -C test $@
 
+check-3.7: pytest
+
 #:Tests for Python 2.6 (doesn't have pytest)
 check-2.6:
 	$(MAKE) -C test $@
 
-#:PyPy 2.6.1 or PyPy 5.0.1
+#:PyPy 2.6.1 PyPy 5.0.1, or PyPy 5.8.0-beta0
 # Skip for now
-2.6 5.0 5.3:
+2.6 5.0 5.3 5.6 5.8:
 
 #:PyPy pypy3-2.4.0 Python 3:
 pypy-3.2 2.4:
@@ -58,8 +60,12 @@ clean: clean_pyc
 	(cd test && $(MAKE) clean)
 
 #: Create source (tarball) and wheel distribution
-dist:
+dist: distcheck
 	$(PYTHON) ./setup.py sdist bdist_wheel
+
+# perform some checks on the package via setup.py
+distcheck:
+	$(PYTHON) ./setup.py check
 
 #: Remove .pyc files
 clean_pyc:
@@ -87,7 +93,7 @@ bdist_egg:
 
 
 #: Create binary wheel distribution
-bdist_wheel:
+wheel:
 	$(PYTHON) ./setup.py bdist_wheel
 
 

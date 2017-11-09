@@ -1,4 +1,4 @@
-#  Copyright (c) 2016 by Rocky Bernstein
+#  Copyright (c) 2016-2017 by Rocky Bernstein
 """
 Python 2.2 bytecode ingester.
 
@@ -11,7 +11,7 @@ import uncompyle6.scanners.scanner23 as scan
 
 # bytecode verification, verify(), uses JUMP_OPs from here
 from xdis.opcodes import opcode_22
-JUMP_OPs = opcode_22.JUMP_OPs
+JUMP_OPS = opcode_22.JUMP_OPS
 
 # We base this off of 2.3 instead of the other way around
 # because we cleaned things up this way.
@@ -30,5 +30,5 @@ class Scanner22(scan.Scanner23):
 
     def ingest22(self, co, classname=None, code_objects={}, show_asm=None):
         tokens, customize = self.parent_ingest(co, classname, code_objects, show_asm)
-        tokens = [t for t in tokens if t.type != 'SET_LINENO']
+        tokens = [t for t in tokens if t.kind != 'SET_LINENO']
         return tokens, customize

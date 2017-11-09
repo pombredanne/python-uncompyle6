@@ -1,10 +1,10 @@
-|buildstatus| |Supported Python Versions|
+|buildstatus|
 
 uncompyle6
 ==========
 
 A native Python cross-version Decompiler and Fragment Decompiler.
-Follows in the tradition of decompyle, uncompyle, and uncompyle2.
+The successor to decompyle, uncompyle, and uncompyle2.
 
 
 Introduction
@@ -12,7 +12,7 @@ Introduction
 
 *uncompyle6* translates Python bytecode back into equivalent Python
 source code. It accepts bytecodes from Python version 1.5, and 2.1 to
-3.6 or so, including PyPy bytecode and Dropbox's Python 2.5 bytecode.
+3.7 or so, including PyPy bytecode and Dropbox's Python 2.5 bytecode.
 
 Why this?
 ---------
@@ -21,7 +21,8 @@ There were a number of decompyle, uncompile, uncompyle2, uncompyle3
 forks around. All of them came basically from the same code base, and
 almost all of them no were no longer actively maintained. Only one
 handled Python 3, and even there, only 3.2 or 3.3 depending on which
-code is used. This code pulls these together and moves forward. It
+code is used. This code pulls these together and moves forward. This
+project has the most complete support for Python 3.3 and above. It
 also addresses a number of open issues in the previous forks.
 
 What makes this different from other CPython bytecode decompilers?: its
@@ -55,7 +56,7 @@ This uses setup.py, so it follows the standard Python routine:
 
 ::
 
-    pip install -r requirements.txt
+    pip install -e .
     pip install -r requirements-dev.txt
     python setup.py install # may need sudo
     # or if you have pyenv:
@@ -166,13 +167,16 @@ There is lots to do, so please dig in and help.
 See Also
 --------
 
-* https://github.com/zrax/pycdc : supports all versions of Python and is written in C++
-* https://code.google.com/archive/p/unpyc3/ : supports Python 3.2 only. The above projects use a different decompiling technique what is used here.
+* https://github.com/zrax/pycdc : supports all versions of Python and is written in C++. Support for later Python 3 versions is a bit lacking though.
+* https://code.google.com/archive/p/unpyc3/ : supports Python 3.2 only. The above projects use a different decompiling technique than what is used here.
 * https://github.com/figment/unpyc3/ : fork of above, but supports Python 3.3 only. Include some fixes like supporting function annotations
 * The HISTORY_ file.
+* `How to report a bug <https://github.com/rocky/python-uncompyle6/blob/master/HOW-TO-REPORT-A-BUG.md>`_
+* https://github.com/rocky/python-xdis : Cross Python version disassembler
+* https://github.com/rocky/python-xasm : Cross Python version assembler
 
-.. |downloads| image:: https://img.shields.io/pypi/dd/uncompyle6.svg
-.. _trepan: https://pypi.python.org/pypi/trepan
+
+.. _trepan: https://pypi.python.org/pypi/trepan2
 .. _HISTORY: https://github.com/rocky/python-uncompyle6/blob/master/HISTORY.md
 .. _debuggers: https://pypi.python.org/pypi/trepan3k
 .. _remake: https://bashdb.sf.net/remake
@@ -180,7 +184,5 @@ See Also
 .. _this: https://github.com/rocky/python-uncompyle6/wiki/Deparsing-technology-and-its-use-in-exact-location-reporting
 .. |buildstatus| image:: https://travis-ci.org/rocky/python-uncompyle6.svg
 		 :target: https://travis-ci.org/rocky/python-uncompyle6
-.. |Supported Python Versions| image:: https://img.shields.io/pypi/pyversions/uncompyle6.svg
-   :target: https://pypi.python.org/pypi/uncompyle6/
 .. _PJOrion: http://www.koreanrandom.com/forum/topic/15280-pjorion-%D1%80%D0%B5%D0%B4%D0%B0%D0%BA%D1%82%D0%B8%D1%80%D0%BE%D0%B2%D0%B0%D0%BD%D0%B8%D0%B5-%D0%BA%D0%BE%D0%BC%D0%BF%D0%B8%D0%BB%D1%8F%D1%86%D0%B8%D1%8F-%D0%B4%D0%B5%D0%BA%D0%BE%D0%BC%D0%BF%D0%B8%D0%BB%D1%8F%D1%86%D0%B8%D1%8F-%D0%BE%D0%B1%D1%84
 .. _Deobfuscator: https://github.com/extremecoders-re/PjOrion-Deobfuscator

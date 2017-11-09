@@ -52,6 +52,8 @@ class Python27Parser(Python2Parser):
         come_froms ::= come_froms COME_FROM
         come_froms ::= COME_FROM
 
+        iflaststmtl ::= testexpr c_stmts_opt
+
         _ifstmts_jump ::= c_stmts_opt JUMP_FORWARD come_froms
         bp_come_from    ::= POP_BLOCK COME_FROM
 
@@ -92,6 +94,10 @@ class Python27Parser(Python2Parser):
                 WITH_CLEANUP END_FINALLY
 
         # Common with 2.6
+        return_if_lambda   ::= RETURN_END_IF_LAMBDA COME_FROM
+        conditional_lambda ::= expr jmp_false expr return_if_lambda
+                               return_stmt_lambda LAMBDA_MARKER
+
         while1stmt ::= SETUP_LOOP return_stmts bp_come_from
         while1stmt ::= SETUP_LOOP return_stmts COME_FROM
         """
@@ -123,10 +129,10 @@ class Python27ParserSingle(Python27Parser, PythonParserSingle):
 if __name__ == '__main__':
     # Check grammar
     p = Python27Parser()
-    p.checkGrammar()
+    p.check_grammar()
     from uncompyle6 import PYTHON_VERSION, IS_PYPY
     if PYTHON_VERSION == 2.7:
-        lhs, rhs, tokens, right_recursive = p.checkSets()
+        lhs, rhs, tokens, right_recursive = p.check_sets()
         from uncompyle6.scanner import get_scanner
         s = get_scanner(PYTHON_VERSION, IS_PYPY)
         opcode_set = set(s.opc.opname).union(set(
@@ -142,4 +148,4 @@ if __name__ == '__main__':
                              for t in remain_tokens])
         remain_tokens = set(remain_tokens) - opcode_set
         print(remain_tokens)
-        # p.dumpGrammar()
+        # p.dump_grammar()

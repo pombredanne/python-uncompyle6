@@ -16,11 +16,14 @@ import sys
 
 from uncompyle6 import PYTHON3, IS_PYPY
 from uncompyle6.scanners.tok import Token
+from xdis.bytecode import op_size
+from xdis.magics import py_str2float
+from xdis.util import code2num
 
 # The byte code versions we support
 PYTHON_VERSIONS = (1.5,
                    2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7,
-                   3.0, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6)
+                   3.0, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7)
 
 # FIXME: DRY
 if PYTHON3:
@@ -54,7 +57,7 @@ class Scanner(object):
 
         if version in PYTHON_VERSIONS:
             if is_pypy:
-                v_str = "opcode_pypy%s" % (int(version * 10))
+                v_str = "opcode_%spypy" % (int(version * 10))
             else:
                 v_str = "opcode_%s" % (int(version * 10))
             exec("from xdis.opcodes import %s" % v_str)
@@ -63,6 +66,7 @@ class Scanner(object):
             raise TypeError("%s is not a Python version I know about" % version)
 
         self.opname = self.opc.opname
+
         # FIXME: This weird Python2 behavior is not Python3
         self.resetTokenClass()
 
@@ -82,15 +86,20 @@ class Scanner(object):
             return True
         if self.code[offset] != self.opc.JUMP_ABSOLUTE:
             return False
-        return offset < self.get_target(offset)
+        # FIXME 0 isn't always correct
+        return offset < self.get_target(offset, 0)
 
     def get_target(self, pos, op=None):
         if op is None:
             op = self.code[pos]
         target = self.get_argument(pos)
-        if op in self.opc.hasjrel:
+        if op in self.opc.JREL_OPS:
             target += pos + 3
         return target
+
+    # FIXME: the below can be removed after xdis version 3.6.1 has been released
+    def extended_arg_val(self, val):
+        return val << self.opc.EXTENDED_ARG_SHIFT
 
     def get_argument(self, pos):
         arg = self.code[pos+1] + self.code[pos+2] * 256
@@ -99,7 +108,7 @@ class Scanner(object):
     def print_bytecode(self):
         for i in self.op_range(0, len(self.code)):
             op = self.code[i]
-            if op in self.opc.hasjabs+self.opc.hasjrel:
+            if op in self.JUMP_OPS:
                 dest = self.get_target(i, op)
                 print('%i\t%s\t%i' % (i, self.opname[op], dest))
             else:
@@ -166,13 +175,20 @@ class Scanner(object):
 
         result_offset = None
         current_distance = len(code)
+        extended_arg = 0
         for offset in self.op_range(start, end):
             op = code[offset]
+
+            if op == self.opc.EXTENDED_ARG:
+                arg = code2num(code, offset+1) | extended_arg
+                extended_arg = self.extended_arg_val(arg)
+                continue
+
             if op in instr:
                 if target is None:
                     result_offset = offset
                 else:
-                    dest = self.get_target(offset)
+                    dest = self.get_target(offset, extended_arg)
                     if dest == target:
                         current_distance = 0
                         result_offset = offset
@@ -201,21 +217,32 @@ class Scanner(object):
             instr = [instr]
 
         result = []
+        extended_arg = 0
         for offset in self.op_range(start, end):
+
             op = code[offset]
+
+            if op == self.opc.EXTENDED_ARG:
+                arg = code2num(code, offset+1) | extended_arg
+                extended_arg = self.extended_arg_val(arg)
+                continue
+
             if op in instr:
                 if target is None:
                     result.append(offset)
                 else:
-                    t = self.get_target(offset)
+                    t = self.get_target(offset, extended_arg)
                     if include_beyond_target and t >= target:
                         result.append(offset)
                     elif t == target:
                         result.append(offset)
-        return result
+                        pass
+                    pass
+                pass
+            extended_arg = 0
+            pass
 
-    def op_hasArgument(self, op):
-        return self.op_size(op) > 1
+        return result
 
     def op_range(self, start, end):
         """
@@ -224,17 +251,7 @@ class Scanner(object):
         """
         while start < end:
             yield start
-            start += self.op_size(self.code[start])
-
-    def op_size(self, op):
-        """
-        Return size of operator with its arguments
-        for given opcode <op>.
-        """
-        if op < self.opc.HAVE_ARGUMENT:
-            return 2 if self.version >= 3.6 else 1
-        else:
-            return 2 if self.version >= 3.6 else 3
+            start += op_size(self.code[start], self.opc)
 
     def remove_mid_line_ifs(self, ifs):
         """
@@ -266,13 +283,16 @@ class Scanner(object):
         self.Token = tokenClass
         return self.Token
 
-def op_has_argument(op, opc):
-    return op >= opc.HAVE_ARGUMENT
-
 def parse_fn_counts(argc):
     return ((argc & 0xFF), (argc >> 8) & 0xFF, (argc >> 16) & 0x7FFF)
 
+
 def get_scanner(version, is_pypy=False, show_asm=None):
+
+    # If version is a string, turn that into the corresponding float.
+    if isinstance(version, str):
+        version = py_str2float(version)
+
     # Pick up appropriate scanner
     if version in PYTHON_VERSIONS:
         v_str = "%s" % (int(version * 10))
@@ -299,5 +319,7 @@ def get_scanner(version, is_pypy=False, show_asm=None):
 if __name__ == "__main__":
     import inspect, uncompyle6
     co = inspect.currentframe().f_code
+    scanner = get_scanner('2.7.13', True)
+    scanner = get_scanner(sys.version[:5], False)
     scanner = get_scanner(uncompyle6.PYTHON_VERSION, IS_PYPY, True)
     tokens, customize = scanner.ingest(co, {})

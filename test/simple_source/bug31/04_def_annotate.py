@@ -9,7 +9,7 @@ def open(file, mode = "r", buffering = None,
          newline = None, closefd = True) -> "IOBase":
     return text
 
-def foo(x: 'an argument that defaults to 5' = 5):
+def foo1(x: 'an argument that defaults to 5' = 5):
     print(x)
 
 def div(a: dict(type=float, help='the dividend'),
@@ -17,3 +17,14 @@ def div(a: dict(type=float, help='the dividend'),
     ) -> dict(type=float, help='the result of dividing a by b'):
     """Divide a by b"""
     return a / b
+
+class TestSignatureObject(unittest.TestCase):
+    def test_signature_on_wkwonly(self):
+        def test(*, a:float, b:str) -> int:
+            pass
+
+class SupportsInt(_Protocol):
+
+    @abstractmethod
+    def __int__(self) -> int:
+        pass

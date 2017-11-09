@@ -20,10 +20,17 @@ class Python32Parser(Python3Parser):
         whileTruestmt     ::= SETUP_LOOP return_stmts
                               COME_FROM_LOOP
 
+        try_middle ::= JUMP_FORWARD COME_FROM_EXCEPT except_stmts
+                       END_FINALLY
+
         # Python 3.2+ has more loop optimization that removes
         # JUMP_FORWARD in some cases, and hence we also don't
         # see COME_FROM
         _ifstmts_jump ::= c_stmts_opt
+        _ifstmts_jump ::= c_stmts_opt JUMP_FORWARD _come_from
+
+        stmt           ::= del_deref_stmt
+        del_deref_stmt ::= DELETE_DEREF
         """
     pass
 
@@ -37,7 +44,7 @@ class Python32Parser(Python3Parser):
     def add_custom_rules(self, tokens, customize):
         super(Python32Parser, self).add_custom_rules(tokens, customize)
         for i, token in enumerate(tokens):
-            opname = token.type
+            opname = token.kind
             if opname.startswith('MAKE_FUNCTION_A'):
                 args_pos, args_kw, annotate_args  = token.attr
                 # Check that there are 2 annotated params?

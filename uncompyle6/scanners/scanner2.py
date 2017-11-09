@@ -1,4 +1,4 @@
-# Copyright (c) 2015, 2016 by Rocky Bernstein
+# Copyright (c) 2015-2017 by Rocky Bernstein
 # Copyright (c) 2005 by Dan Pascu <dan@windowmaker.org>
 # Copyright (c) 2000-2002 by hartmut Goebel <h.goebel@crazy-compilers.com>
 """
@@ -25,14 +25,15 @@ from __future__ import print_function
 from collections import namedtuple
 from array import array
 
-from uncompyle6.scanner import op_has_argument
 from xdis.code import iscode
+from xdis.bytecode import op_has_argument, op_size, instruction_size
+from xdis.util import code2num
 
-import uncompyle6.scanner as scan
+from uncompyle6.scanner import Scanner
 
-class Scanner2(scan.Scanner):
+class Scanner2(Scanner):
     def __init__(self, version, show_asm=None, is_pypy=False):
-        scan.Scanner.__init__(self, version, show_asm, is_pypy)
+        Scanner.__init__(self, version, show_asm, is_pypy)
         self.pop_jump_if = frozenset([self.opc.PJIF, self.opc.PJIT])
         self.jump_forward = frozenset([self.opc.JUMP_ABSOLUTE, self.opc.JUMP_FORWARD])
         # This is the 2.5+ default
@@ -90,14 +91,20 @@ class Scanner2(scan.Scanner):
             from xdis.bytecode import Bytecode
             bytecode = Bytecode(co, self.opc)
             for instr in bytecode.get_instructions(co):
-                print(instr._disassemble())
+                print(instr.disassemble())
 
-        # Container for tokens
+        # list of tokens/instructions
         tokens = []
 
+        # "customize" is a dict whose keys are nonterminals
+        # and the value is the argument stack entries for that
+        # nonterminal. The count is a little hoaky. It is mostly
+        # not used, but sometimes it is.
+        # "customize" is a dict whose keys are nonterminals
         customize = {}
+
         if self.is_pypy:
-            customize['PyPy'] = 1
+            customize['PyPy'] = 0
 
         Token = self.Token # shortcut
 
@@ -186,9 +193,9 @@ class Scanner2(scan.Scanner):
                 oparg = self.get_argument(offset) + extended_arg
                 extended_arg = 0
                 if op == self.opc.EXTENDED_ARG:
-                    extended_arg = oparg * scan.L65536
+                    extended_arg += self.extended_arg_val(oparg)
                     continue
-                if op in self.opc.hasconst:
+                if op in self.opc.CONST_OPS:
                     const = co.co_consts[oparg]
                     if iscode(const):
                         oparg = const
@@ -209,23 +216,23 @@ class Scanner2(scan.Scanner):
                         pattr = '<code_object ' + const.co_name + '>'
                     else:
                         pattr = const
-                elif op in self.opc.hasname:
+                elif op in self.opc.NAME_OPS:
                     pattr = names[oparg]
-                elif op in self.opc.hasjrel:
+                elif op in self.opc.JREL_OPS:
                     #  use instead: hasattr(self, 'patch_continue'): ?
                     if self.version == 2.7:
                         self.patch_continue(tokens, offset, op)
                     pattr = repr(offset + 3 + oparg)
-                elif op in self.opc.hasjabs:
+                elif op in self.opc.JABS_OPS:
                     # use instead: hasattr(self, 'patch_continue'): ?
                     if self.version == 2.7:
                         self.patch_continue(tokens, offset, op)
                     pattr = repr(oparg)
-                elif op in self.opc.haslocal:
+                elif op in self.opc.LOCAL_OPS:
                     pattr = varnames[oparg]
-                elif op in self.opc.hascompare:
+                elif op in self.opc.COMPARE_OPS:
                     pattr = self.opc.cmp_op[oparg]
-                elif op in self.opc.hasfree:
+                elif op in self.opc.FREE_OPS:
                     pattr = free[oparg]
 
             if op in self.varargs_ops:
@@ -327,7 +334,7 @@ class Scanner2(scan.Scanner):
         for i in self.op_range(0, n):
             op = self.code[i]
             self.prev.append(i)
-            if self.op_hasArgument(op):
+            if op_has_argument(op, self.opc):
                 self.prev.append(i)
                 self.prev.append(i)
                 pass
@@ -380,7 +387,7 @@ class Scanner2(scan.Scanner):
                     if elem != code[i]:
                         match = False
                         break
-                    i += self.op_size(code[i])
+                    i += op_size(code[i], self.opc)
 
                 if match:
                     i = self.prev[i]
@@ -451,7 +458,7 @@ class Scanner2(scan.Scanner):
                     self.not_continue.add(jmp)
                     jmp = self.get_target(jmp)
                     prev_offset = self.prev[except_match]
-                    # COMPARE_OP argument should be "exception match" or 10
+                    # COMPARE_OP argument should be "exception-match" or 10
                     if (self.code[prev_offset] == self.opc.COMPARE_OP and
                         self.code[prev_offset+1] != 10):
                         return None
@@ -478,7 +485,7 @@ class Scanner2(scan.Scanner):
             elif op in self.setup_ops:
                 count_SETUP_ += 1
 
-    def detect_control_flow(self, offset, op):
+    def detect_control_flow(self, offset, op, extended_arg):
         """
         Detect type of block structures and their boundaries to fix optimized jumps
         in python2.3+
@@ -502,14 +509,13 @@ class Scanner2(scan.Scanner):
                 parent = struct
 
         if op == self.opc.SETUP_LOOP:
-
             # We categorize loop types: 'for', 'while', 'while 1' with
             # possibly suffixes '-loop' and '-else'
             # Try to find the jump_back instruction of the loop.
             # It could be a return instruction.
 
-            start = offset+3
-            target = self.get_target(offset, op)
+            start += instruction_size(op, self.opc)
+            target = self.get_target(offset) + extended_arg
             end    = self.restrict_to_parent(target, parent)
             self.setup_loop_targets[offset] = target
             self.setup_loops[target] = offset
@@ -602,7 +608,7 @@ class Scanner2(scan.Scanner):
 
                     if test == offset:
                         loop_type = 'while 1'
-                    elif self.code[test] in self.opc.hasjabs + self.opc.hasjrel:
+                    elif self.code[test] in self.opc.JUMP_OPs:
                         self.ignore_if.add(test)
                         test_target = self.get_target(test)
                         if test_target > (jump_back+3):
@@ -617,7 +623,7 @@ class Scanner2(scan.Scanner):
                                        'start': jump_back+3,
                                        'end':   end})
         elif op == self.opc.SETUP_EXCEPT:
-            start  = offset + self.op_size(op)
+            start  = offset + op_size(op, self.opc)
             target = self.get_target(offset, op)
             end    = self.restrict_to_parent(target, parent)
             if target != end:
@@ -641,7 +647,7 @@ class Scanner2(scan.Scanner):
                         setup_except_nest -= 1
                 elif self.code[end_finally_offset] == self.opc.SETUP_EXCEPT:
                     setup_except_nest += 1
-                end_finally_offset += self.op_size(code[end_finally_offset])
+                end_finally_offset += op_size(code[end_finally_offset], self.opc)
                 pass
 
             # Add the except blocks
@@ -842,7 +848,7 @@ class Scanner2(scan.Scanner):
                     else:
                         # We still have the case in 2.7 that the next instruction
                         # is a jump to a SETUP_LOOP target.
-                        next_offset = target + self.op_size(self.code[target])
+                        next_offset = target + op_size(self.code[target], self.opc)
                         next_op = self.code[next_offset]
                         if self.op_name(next_op) == 'JUMP_FORWARD':
                             jump_target = self.get_target(next_offset, next_op)
@@ -904,7 +910,9 @@ class Scanner2(scan.Scanner):
                                          'start': start-3,
                                          'end':   pre_rtarget})
 
-                self.not_continue.add(pre_rtarget)
+                # FIXME: this is yet another case were we need dominators.
+                if pre_rtarget not in self.linestartoffsets or self.version < 2.7:
+                    self.not_continue.add(pre_rtarget)
 
                 if rtarget < end:
                     # We have an "else" block  of some kind.
@@ -979,23 +987,29 @@ class Scanner2(scan.Scanner):
         self.thens = {} # JUMP_IF's that separate the 'then' part of an 'if'
 
         targets = {}
+        extended_arg = 0
         for offset in self.op_range(0, n):
             op = code[offset]
 
+            if op == self.opc.EXTENDED_ARG:
+                arg = code2num(code, offset+1) | extended_arg
+                extended_arg += self.extended_arg_val(arg)
+                continue
+
             # Determine structures and fix jumps in Python versions
             # since 2.3
-            self.detect_control_flow(offset, op)
+            self.detect_control_flow(offset, op, extended_arg)
 
             if op_has_argument(op, self.opc):
                 label = self.fixed_jumps.get(offset)
                 oparg = self.get_argument(offset)
 
                 if label is None:
-                    if op in self.opc.hasjrel and self.op_name(op) != 'FOR_ITER':
-                        # if (op in self.opc.hasjrel and
+                    if op in self.opc.JREL_OPS and self.op_name(op) != 'FOR_ITER':
+                        # if (op in self.opc.JREL_OPS and
                         #     (self.version < 2.0 or op != self.opc.FOR_ITER)):
                         label = offset + 3 + oparg
-                    elif self.version == 2.7 and op in self.opc.hasjabs:
+                    elif self.version == 2.7 and op in self.opc.JABS_OPS:
                         if op in (self.opc.JUMP_IF_FALSE_OR_POP,
                                   self.opc.JUMP_IF_TRUE_OR_POP):
                             if (oparg > offset):
@@ -1034,7 +1048,9 @@ class Scanner2(scan.Scanner):
                 label = self.fixed_jumps[offset]
                 targets[label] = targets.get(label, []) + [offset]
                 pass
-            pass
+
+            extended_arg = 0
+            pass # for loop
 
         # DEBUG:
         if debug in ('both', 'after'):

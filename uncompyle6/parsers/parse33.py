@@ -20,7 +20,9 @@ class Python33Parser(Python32Parser):
 
         iflaststmt    ::= testexpr c_stmts_opt33
         c_stmts_opt33 ::= JUMP_BACK JUMP_ABSOLUTE c_stmts_opt
-        _ifstmts_jump ::= c_stmts_opt JUMP_FORWARD _come_from
+
+        whileTruestmt ::= SETUP_LOOP l_stmts JUMP_ABSOLUTE
+                          JUMP_BACK COME_FROM_LOOP
 
         # Python 3.5+ has jump optimization to remove the redundant
         # jump_excepts. But in 3.3 we need them added

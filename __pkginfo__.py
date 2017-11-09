@@ -33,14 +33,14 @@ classifiers =  ['Development Status :: 5 - Production/Stable',
 # The rest in alphabetic order
 author             = "Rocky Bernstein, Hartmut Goebel, John Aycock, and others"
 author_email       = "rb@dustyfeet.com"
-entry_points={
+entry_points       = {
     'console_scripts': [
         'uncompyle6=uncompyle6.bin.uncompile:main_bin',
         'pydisassemble=uncompyle6.bin.pydisassemble:main',
     ]}
 ftp_url            = None
-install_requires   = ['spark-parser >= 1.6.0, < 1.7.0',
-                      'xdis >= 3.3.0, < 3.4.0']
+install_requires   = ['spark-parser >= 1.7.1, < 1.8.0',
+                      'xdis >= 3.6.0, < 3.7.0', 'six']
 license            = 'MIT'
 mailing_list       = 'python-debugger@googlegroups.com'
 modname            = 'uncompyle6'

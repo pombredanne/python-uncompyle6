@@ -84,6 +84,12 @@ class Python26Parser(Python2Parser):
         ja_cf_pop ::= JUMP_ABSOLUTE come_froms POP_TOP
         jf_cf_pop ::= JUMP_FORWARD come_froms POP_TOP
 
+        # The first optional COME_FROM when it appears is really
+        # COME_FROM_LOOP, but in <= 2.6 we don't distinguish
+        # this
+
+        cf_jb_cf_pop ::= _come_from JUMP_BACK come_froms POP_TOP
+
         bp_come_from    ::= POP_BLOCK COME_FROM
         jb_bp_come_from ::= JUMP_BACK bp_come_from
 
@@ -111,7 +117,8 @@ class Python26Parser(Python2Parser):
         break_stmt ::= BREAK_LOOP JUMP_BACK
 
         # Semantic actions want else_suitel to be at index 3
-        ifelsestmtl ::= testexpr c_stmts_opt jb_cf_pop else_suitel
+        ifelsestmtl ::= testexpr c_stmts_opt cf_jb_cf_pop else_suitel
+
         ifelsestmtc ::= testexpr c_stmts_opt ja_cf_pop else_suitec
 
         # Semantic actions want suite_stmts_opt to be at index 3
@@ -240,7 +247,9 @@ class Python26Parser(Python2Parser):
         and  ::= expr JUMP_IF_FALSE POP_TOP expr JUMP_IF_FALSE POP_TOP
         cmp_list ::= expr cmp_list1 ROT_TWO COME_FROM POP_TOP _come_from
 
-        conditional_lambda ::= expr jmp_false_then return_if_stmt return_stmt LAMBDA_MARKER
+        return_if_lambda   ::= RETURN_END_IF_LAMBDA POP_TOP
+        conditional_lambda ::= expr jmp_false_then expr return_if_lambda
+                               return_stmt_lambda LAMBDA_MARKER
         """
 
     def add_custom_rules(self, tokens, customize):
@@ -267,10 +276,10 @@ class Python26ParserSingle(Python2Parser, PythonParserSingle):
 if __name__ == '__main__':
     # Check grammar
     p = Python26Parser()
-    p.checkGrammar()
+    p.check_grammar()
     from uncompyle6 import PYTHON_VERSION, IS_PYPY
     if PYTHON_VERSION == 2.6:
-        lhs, rhs, tokens, right_recursive = p.checkSets()
+        lhs, rhs, tokens, right_recursive = p.check_sets()
         from uncompyle6.scanner import get_scanner
         s = get_scanner(PYTHON_VERSION, IS_PYPY)
         opcode_set = set(s.opc.opname).union(set(

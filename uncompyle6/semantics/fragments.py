@@ -1,6 +1,4 @@
-#  Copyright (c) 2015, 2016 by Rocky Bernstein
-#  Copyright (c) 2005 by Dan Pascu <dan@windowmaker.org>
-#  Copyright (c) 2000-2002 by hartmut Goebel <h.goebel@crazy-compilers.com>
+#  Copyright (c) 2015-2017 by Rocky Bernstein
 #  Copyright (c) 1999 John Aycock
 
 """
@@ -8,8 +6,8 @@ Creates Python source code from an uncompyle6 abstract syntax tree,
 and indexes fragments which can be accessed by instruction offset
 address.
 
-See the comments in pysource for information on the abstract sytax tree
-and how semantic actions are written.
+See https://github.com/rocky/python-uncompyle6/wiki/Table-driven-semantic-actions.
+for a more complete explanation, nicely marked up and with examples.
 
 We add some format specifiers here not used in pysource
 
@@ -40,11 +38,12 @@ do it recursively which is where offsets are probably located.
 2. %b
 -----
 
-   %b associates the text from the previous start node up to what we have now
+   %b associates the text from the specified index to what we have now.
+      it takes an integer argument.
 
 For example in:
   'importmultiple':   ( '%|import%b %c%c\n', 0, 2, 3 ),
-
+n
 The node position 0 will be associated with "import".
 
 """
@@ -55,44 +54,34 @@ from __future__ import print_function
 
 import re, sys
 
-from uncompyle6 import PYTHON3, IS_PYPY
 from xdis.code import iscode
 from uncompyle6.semantics import pysource
 from uncompyle6 import parser
 from uncompyle6.scanner import Token, Code, get_scanner
 from uncompyle6.semantics.check_ast import checker
-from uncompyle6.semantics.helper import print_docstring
 
 from uncompyle6.show import (
     maybe_show_asm,
     maybe_show_ast,
-    maybe_show_ast_param_default,
 )
 
 from uncompyle6.parsers.astnode import AST
 
 from uncompyle6.semantics.pysource import (
-    ParserError, find_globals, StringIO)
+    ParserError, StringIO)
 
 from uncompyle6.semantics.consts import (
     INDENT_PER_LEVEL, NONE, PRECEDENCE,
     TABLE_DIRECT, escape, minint, MAP
     )
 
-from uncompyle6.semantics.make_function import find_all_globals, find_none
-
-if PYTHON3:
-    from itertools import zip_longest
-else:
-    from itertools import izip_longest as zip_longest
-
-
 from spark_parser import DEFAULT_DEBUG as PARSER_DEFAULT_DEBUG
+from spark_parser.ast import GenericASTTraversalPruningException
 
 from collections import namedtuple
 NodeInfo = namedtuple("NodeInfo", "node start finish")
 ExtractInfo = namedtuple("ExtractInfo",
-                         "lineNo lineStartOffset markerLine selectedLine selectedText")
+                         "lineNo lineStartOffset markerLine selectedLine selectedText nonterminal")
 
 TABLE_DIRECT_FRAGMENT = {
     'break_stmt':	( '%|%rbreak\n', ),
@@ -103,9 +92,8 @@ TABLE_DIRECT_FRAGMENT = {
     'importfrom':	( '%|from %[2]{pattr}%x import %c\n', (2, (0, 1)), 3),
     'importmultiple':   ( '%|import%b %c%c\n', 0, 2, 3 ),
     'list_for':	  	(' for %c%x in %c%c', 2, (2, (1, )), 0, 3 ),
-    'forstmt':	  	( '%|for%b %c%x in %c:\n%+%c%-\n\n', 0, 3, (3, (2, )), 1, 4 ),
     'forelsestmt': 	(
-        '%|for %c in %c%x:\n%+%c%-%|else:\n%+%c%-\n\n', 3, (3, (2,)), 1, 4, -2),
+        '%|for %c%x in %c:\n%+%c%-%|else:\n%+%c%-\n\n', 3, (3, (2,)), 1, 4, -2),
     'forelselaststmt':	(
         '%|for %c%x in %c:\n%+%c%-%|else:\n%+%c%-', 3, (3, (2,)), 1, 4, -2),
     'forelselaststmtl':	(
@@ -126,11 +114,12 @@ class FragmentsWalker(pysource.SourceWalker, object):
 
     def __init__(self, version, scanner, showast=False,
                  debug_parser=PARSER_DEFAULT_DEBUG,
-                 compile_mode='exec', is_pypy=False):
+                 compile_mode='exec', is_pypy=False, tolerate_errors=True):
         pysource.SourceWalker.__init__(self, version=version, out=StringIO(),
                                        scanner=scanner,
                                        showast=showast, debug_parser=debug_parser,
-                                       compile_mode=compile_mode, is_pypy=is_pypy)
+                                       compile_mode=compile_mode, is_pypy=is_pypy,
+                                       tolerate_errors=tolerate_errors)
 
         # hide_internal suppresses displaying the additional instructions that sometimes
         # exist in code but but were not written in the source code.
@@ -146,6 +135,7 @@ class FragmentsWalker(pysource.SourceWalker, object):
         # FIXME: is there a better way?
         global MAP_DIRECT_FRAGMENT
         MAP_DIRECT_FRAGMENT = dict(TABLE_DIRECT, **TABLE_DIRECT_FRAGMENT),
+        return
 
     f = property(lambda s: s.params['f'],
                  lambda s, x: s.params.__setitem__('f', x),
@@ -170,8 +160,9 @@ class FragmentsWalker(pysource.SourceWalker, object):
     def set_pos_info(self, node, start, finish, name=None):
         if name is None: name = self.name
         if hasattr(node, 'offset'):
-            self.offsets[name, node.offset] = \
-              NodeInfo(node = node, start = start, finish = finish)
+            node.start = start
+            node.finish = finish
+            self.offsets[name, node.offset] = node
 
         if hasattr(node, 'parent'):
             assert node.parent != node
@@ -186,6 +177,34 @@ class FragmentsWalker(pysource.SourceWalker, object):
         self.set_pos_info(node, start, len(self.f.getvalue()))
 
         return
+
+    def table_r_node(self, node):
+        """General pattern where the last node should should
+        get the text span attributes of the entire tree"""
+        start = len(self.f.getvalue())
+        try:
+            self.default(node)
+        except GenericASTTraversalPruningException:
+            final = len(self.f.getvalue())
+            self.set_pos_info(node, start, final)
+            self.set_pos_info(node[-1], start, final)
+            raise GenericASTTraversalPruningException
+
+    n_slice0 = n_slice1 = n_slice2 = n_slice3 = n_binary_subscr = table_r_node
+    n_augassign_1 = n_print_item = exec_stmt = print_to_item = del_stmt = table_r_node
+    n_classdefco1 = n_classdefco2 = except_cond1 = except_cond2 = table_r_node
+
+    def n_passtmt(self, node):
+        start = len(self.f.getvalue()) + len(self.indent)
+        self.set_pos_info(node, start, start+len("pass"))
+        self.default(node)
+
+    def n_trystmt(self, node):
+        start = len(self.f.getvalue()) + len(self.indent)
+        self.set_pos_info(node[0], start, start+len("try:"))
+        self.default(node)
+
+    n_tryelsestmt = n_tryelsestmtc = n_tryelsestmtl = n_tryfinallystmt = n_trystmt
 
     def n_return_stmt(self, node):
         start = len(self.f.getvalue()) + len(self.indent)
@@ -240,6 +259,7 @@ class FragmentsWalker(pysource.SourceWalker, object):
             self.write(' ')
             node[0].parent = node
             self.preorder(node[0])
+        self.set_pos_info(node[-1], start, len(self.f.getvalue()))
         self.set_pos_info(node, start, len(self.f.getvalue()))
         self.prune() # stop recursing
 
@@ -287,11 +307,11 @@ class FragmentsWalker(pysource.SourceWalker, object):
     def n_expr(self, node):
         start = len(self.f.getvalue())
         p = self.prec
-        if node[0].type.startswith('binary_expr'):
+        if node[0].kind.startswith('binary_expr'):
             n = node[0][-1][0]
         else:
             n = node[0]
-        self.prec = PRECEDENCE.get(n.type, -2)
+        self.prec = PRECEDENCE.get(n.kind, -2)
         if n == 'LOAD_CONST' and repr(n.pattr)[0] == '-':
             n.parent = node
             self.set_pos_info(n, start, len(self.f.getvalue()))
@@ -377,15 +397,23 @@ class FragmentsWalker(pysource.SourceWalker, object):
                 self.write(sep); sep = ", "
                 self.preorder(subnode)
         self.set_pos_info(node, start, len(self.f.getvalue()))
+        self.set_pos_info(node[-1], start, len(self.f.getvalue()))
         self.println()
         self.prune() # stop recursing
 
     def n_ifelsestmtr(self, node):
-        if len(node[2]) != 2:
+        if node[2] == 'COME_FROM':
+            return_stmts_node = node[3]
+            node.kind = 'ifelsestmtr2'
+        else:
+            return_stmts_node = node[2]
+        if len(return_stmts_node) != 2:
             self.default(node)
 
-        if not (node[2][0][0][0] == 'ifstmt' and node[2][0][0][0][1][0] == 'return_if_stmts') \
-                and not (node[2][0][-1][0] == 'ifstmt' and node[2][0][-1][0][1][0] == 'return_if_stmts'):
+        if (not (return_stmts_node[0][0][0] == 'ifstmt'
+                 and return_stmts_node[0][0][0][1][0] == 'return_if_stmts')
+            and not (return_stmts_node[0][-1][0] == 'ifstmt'
+                     and return_stmts_node[0][-1][0][1][0] == 'return_if_stmts')):
             self.default(node)
             return
 
@@ -393,10 +421,10 @@ class FragmentsWalker(pysource.SourceWalker, object):
         self.write(self.indent, 'if ')
         self.preorder(node[0])
         self.println(':')
-        self.indentMore()
+        self.indent_more()
         node[1].parent = node
         self.preorder(node[1])
-        self.indentLess()
+        self.indent_less()
 
         if_ret_at_end = False
         if len(node[2][0]) >= 3:
@@ -406,26 +434,26 @@ class FragmentsWalker(pysource.SourceWalker, object):
 
         past_else = False
         prev_stmt_is_if_ret = True
-        for n in node[2][0]:
+        for n in return_stmts_node[0]:
             if (n[0] == 'ifstmt' and n[0][1][0] == 'return_if_stmts'):
                 if prev_stmt_is_if_ret:
-                    n[0].type = 'elifstmt'
+                    n[0].kind = 'elifstmt'
                 prev_stmt_is_if_ret = True
             else:
                 prev_stmt_is_if_ret = False
                 if not past_else and not if_ret_at_end:
                     self.println(self.indent, 'else:')
-                    self.indentMore()
+                    self.indent_more()
                     past_else = True
             n.parent = node
             self.preorder(n)
         if not past_else or if_ret_at_end:
             self.println(self.indent, 'else:')
-            self.indentMore()
+            self.indent_more()
         node[2][1].parent = node
         self.preorder(node[2][1])
         self.set_pos_info(node, start, len(self.f.getvalue()))
-        self.indentLess()
+        self.indent_less()
         self.prune()
 
     def n_elifelsestmtr(self, node):
@@ -442,20 +470,20 @@ class FragmentsWalker(pysource.SourceWalker, object):
         node[0].parent = node
         self.preorder(node[0])
         self.println(':')
-        self.indentMore()
+        self.indent_more()
         node[1].parent = node
         self.preorder(node[1])
-        self.indentLess()
+        self.indent_less()
 
         for n in node[2][0]:
-            n[0].type = 'elifstmt'
+            n[0].kind = 'elifstmt'
             n.parent = node
             self.preorder(n)
         self.println(self.indent, 'else:')
-        self.indentMore()
+        self.indent_more()
         node[2][1].parent = node
         self.preorder(node[2][1])
-        self.indentLess()
+        self.indent_less()
         self.set_pos_info(node, start, len(self.f.getvalue()))
         self.prune()
 
@@ -464,7 +492,7 @@ class FragmentsWalker(pysource.SourceWalker, object):
         iname = node[0].pattr
 
         store_import_node = node[-1][-1]
-        assert store_import_node.type.startswith('STORE_')
+        assert store_import_node.kind.startswith('STORE_')
 
         sname = store_import_node.pattr
         self.write(iname)
@@ -488,17 +516,20 @@ class FragmentsWalker(pysource.SourceWalker, object):
             # LOAD_CONST code object ..
             # LOAD_CONST        'x0'  if >= 3.3
             # MAKE_FUNCTION ..
-            code_index = -3
+            code_node = node[-3]
+        elif node[-2] == 'expr':
+            code_node = node[-2][0]
         else:
             # LOAD_CONST code object ..
             # MAKE_FUNCTION ..
-            code_index = -2
-        code = node[code_index]
-        func_name = code.attr.co_name
+            code_node = node[-2]
+        func_name = code_node.attr.co_name
         self.write(func_name)
+        self.set_pos_info(code_node, start, len(self.f.getvalue()))
 
-        self.indentMore()
-        self.make_function(node, isLambda=False, code=code)
+        self.indent_more()
+        start = len(self.f.getvalue())
+        self.make_function(node, isLambda=False, codeNode=code_node)
 
         self.set_pos_info(node, start, len(self.f.getvalue()))
 
@@ -506,7 +537,7 @@ class FragmentsWalker(pysource.SourceWalker, object):
             self.write('\n\n')
         else:
             self.write('\n\n\n')
-        self.indentLess()
+        self.indent_less()
         self.prune() # stop recursing
 
     def n_list_compr(self, node):
@@ -522,7 +553,7 @@ class FragmentsWalker(pysource.SourceWalker, object):
             elif n == 'list_if':	n = n[2]
             elif n == 'list_if_not': n= n[2]
         assert n == 'lc_body'
-        if node[0].type.startswith('BUILD_LIST'):
+        if node[0].kind.startswith('BUILD_LIST'):
             start = len(self.f.getvalue())
             self.set_pos_info(node[0], start, start+1)
         self.write( '[ ')
@@ -655,7 +686,7 @@ class FragmentsWalker(pysource.SourceWalker, object):
 
         # Python 2.7+ starts including set_comp_body
         # Python 3.5+ starts including setcomp_func
-        assert n.type in ('lc_body', 'comp_body', 'setcomp_func', 'set_comp_body'), ast
+        assert n.kind in ('lc_body', 'comp_body', 'setcomp_func', 'set_comp_body'), ast
         assert designator, "Couldn't find designator in list/set comprehension"
 
         old_name = self.name
@@ -682,7 +713,7 @@ class FragmentsWalker(pysource.SourceWalker, object):
             self.preorder(if_node)
         self.prec = p
         self.name = old_name
-        if node[-1].type.startswith('CALL_FUNCTION'):
+        if node[-1].kind.startswith('CALL_FUNCTION'):
             self.set_pos_info(node[-1], gen_start, len(self.f.getvalue()))
 
     def listcomprehension_walk2(self, node):
@@ -711,7 +742,7 @@ class FragmentsWalker(pysource.SourceWalker, object):
                 n = n[3]
             elif n in ('list_if', 'list_if_not'):
                 # FIXME: just a guess
-                if n[0].type == 'expr':
+                if n[0].kind == 'expr':
                     list_if = n
                 else:
                     list_if = n[1]
@@ -754,7 +785,7 @@ class FragmentsWalker(pysource.SourceWalker, object):
             start = len(self.f.getvalue())
             self.set_pos_info(node[0], start-1, start)
             self.comprehension_walk3(node, 1, 0)
-        elif node[0].type == 'load_closure':
+        elif node[0].kind == 'load_closure':
             self.setcomprehension_walk3(node, collection_index=4)
         else:
             self.comprehension_walk(node, iter_index=4)
@@ -773,7 +804,7 @@ class FragmentsWalker(pysource.SourceWalker, object):
         self.set_pos_info(node[0], start, len(self.f.getvalue()))
         self.write(': {')
         start = len(self.f.getvalue())
-        assert node[0].type.startswith('BUILD_SET')
+        assert node[0].kind.startswith('BUILD_SET')
         self.set_pos_info(node[0], start-1, start)
         designator = node[3]
         assert designator == 'designator'
@@ -782,7 +813,7 @@ class FragmentsWalker(pysource.SourceWalker, object):
         fin = len(self.f.getvalue())
         self.set_pos_info(designator, start, fin)
         for_iter_node = node[2]
-        assert for_iter_node.type == 'FOR_ITER'
+        assert for_iter_node.kind == 'FOR_ITER'
         self.set_pos_info(for_iter_node, start, fin)
         self.write(" for ")
         self.preorder(designator)
@@ -801,7 +832,7 @@ class FragmentsWalker(pysource.SourceWalker, object):
 
     def n_listcomp(self, node):
         self.write('[')
-        if node[0].type == 'load_closure':
+        if node[0].kind == 'load_closure':
             self.listcomprehension_walk2(node)
         else:
             if node[0] == 'LOAD_LISTCOMP':
@@ -815,7 +846,7 @@ class FragmentsWalker(pysource.SourceWalker, object):
         if len(node) > 1:
             if (node[0] == 'c_stmts_opt' and
                 node[0][0] == 'passstmt' and
-                node[1].type.startswith('JUMP_FORWARD')):
+                node[1].kind.startswith('JUMP_FORWARD')):
                 self.set_pos_info(node[1], node[0][0].start, node[0][0].finish)
 
     def setcomprehension_walk3(self, node, collection_index):
@@ -846,7 +877,7 @@ class FragmentsWalker(pysource.SourceWalker, object):
                 n = n[3]
             elif n in ('list_if', 'list_if_not', 'comp_if', 'comp_if_not'):
                 # FIXME: just a guess
-                if n[0].type == 'expr':
+                if n[0].kind == 'expr':
                     list_if = n
                 else:
                     list_if = n[1]
@@ -946,9 +977,9 @@ class FragmentsWalker(pysource.SourceWalker, object):
         self.println(':')
 
         # class body
-        self.indentMore()
+        self.indent_more()
         self.build_class(subclass)
-        self.indentLess()
+        self.indent_less()
 
         self.currentclass = cclass
         self.set_pos_info(node, start, len(self.f.getvalue()))
@@ -1001,8 +1032,8 @@ class FragmentsWalker(pysource.SourceWalker, object):
         # NOTE: this differs from behavior in pysource.py
 
         if len(tokens) >= 2 and not noneInNames:
-            if tokens[-1].type == 'RETURN_VALUE':
-                if tokens[-2].type != 'LOAD_CONST':
+            if tokens[-1].kind == 'RETURN_VALUE':
+                if tokens[-2].kind != 'LOAD_CONST':
                     tokens.append(Token('RETURN_LAST'))
         if len(tokens) == 0:
             return
@@ -1090,7 +1121,6 @@ class FragmentsWalker(pysource.SourceWalker, object):
     def traverse(self, node, indent=None, isLambda=False):
         '''Buulds up fragment which can be used inside a larger
         block of code'''
-
         self.param_stack.append(self.params)
         if indent is None: indent = self.indent
         p = self.pending_newlines
@@ -1185,15 +1215,37 @@ class FragmentsWalker(pysource.SourceWalker, object):
 
         if elided: selectedLine += ' ...'
 
+        if isinstance(nodeInfo, Token):
+            nodeInfo = nodeInfo.parent
+        else:
+            nodeInfo = nodeInfo
+
+        if isinstance(nodeInfo, AST):
+            nonterminal = nodeInfo[0]
+        else:
+            nonterminal = nodeInfo.node
+
         return ExtractInfo(lineNo = len(lines), lineStartOffset = lineStart,
                            markerLine = markerLine,
                            selectedLine = selectedLine,
-                           selectedText = selectedText)
+                           selectedText = selectedText,
+                           nonterminal = nonterminal)
 
     def extract_line_info(self, name, offset):
         if (name, offset) not in list(self.offsets.keys()):
             return None
         return self.extract_node_info(self.offsets[name, offset])
+
+    def prev_node(self, node):
+        prev = None
+        if not hasattr(node, 'parent'):
+            return prev
+        p = node.parent
+        for n in p:
+            if node == n:
+                return prev
+            prev = n
+        return prev
 
     def extract_parent_info(self, node):
         if not hasattr(node, 'parent'):
@@ -1233,10 +1285,10 @@ class FragmentsWalker(pysource.SourceWalker, object):
         # as a custom rule
         start = len(self.f.getvalue())
         n = len(node)-1
-        assert node[n].type.startswith('CALL_FUNCTION')
+        assert node[n].kind.startswith('CALL_FUNCTION')
 
         for i in range(n-2, 0, -1):
-            if not node[i].type in ['expr', 'LOAD_CLASSNAME']:
+            if not node[i].kind in ['expr', 'LOAD_CLASSNAME']:
                 break
             pass
 
@@ -1264,14 +1316,14 @@ class FragmentsWalker(pysource.SourceWalker, object):
         p = self.prec
         self.prec = 100
 
-        self.indentMore(INDENT_PER_LEVEL)
+        self.indent_more(INDENT_PER_LEVEL)
         line_seperator = ',\n' + self.indent
         sep = INDENT_PER_LEVEL[:-1]
         start = len(self.f.getvalue())
         self.write('{')
 
         if self.version > 3.0:
-            if node[0].type.startswith('kvlist'):
+            if node[0].kind.startswith('kvlist'):
                 # Python 3.5+ style key/value list in mapexpr
                 kv_node = node[0]
                 l = list(kv_node)
@@ -1286,11 +1338,11 @@ class FragmentsWalker(pysource.SourceWalker, object):
                     i += 2
                     pass
                 pass
-            elif node[1].type.startswith('kvlist'):
+            elif node[1].kind.startswith('kvlist'):
                 # Python 3.0..3.4 style key/value list in mapexpr
                 kv_node = node[1]
                 l = list(kv_node)
-                if len(l) > 0 and l[0].type == 'kv3':
+                if len(l) > 0 and l[0].kind == 'kv3':
                     # Python 3.2 does this
                     kv_node = node[1][0]
                     l = list(kv_node)
@@ -1313,7 +1365,7 @@ class FragmentsWalker(pysource.SourceWalker, object):
             pass
         else:
             # Python 2 style kvlist
-            assert node[-1].type.startswith('kvlist')
+            assert node[-1].kind.startswith('kvlist')
             kv_node = node[-1] # goto kvlist
 
             for kv in kv_node:
@@ -1341,7 +1393,7 @@ class FragmentsWalker(pysource.SourceWalker, object):
             n.parent = node
             self.set_pos_info(n, start, finish)
         self.set_pos_info(node, start, finish)
-        self.indentLess(INDENT_PER_LEVEL)
+        self.indent_less(INDENT_PER_LEVEL)
         self.prec = p
         self.prune()
 
@@ -1352,7 +1404,7 @@ class FragmentsWalker(pysource.SourceWalker, object):
         p = self.prec
         self.prec = 100
         n = node.pop()
-        lastnode = n.type
+        lastnode = n.kind
         start = len(self.f.getvalue())
         if lastnode.startswith('BUILD_LIST'):
             self.write('['); endchar = ']'
@@ -1377,7 +1429,7 @@ class FragmentsWalker(pysource.SourceWalker, object):
             else:
                 flat_elems.append(elem)
 
-        self.indentMore(INDENT_PER_LEVEL)
+        self.indent_more(INDENT_PER_LEVEL)
         if len(node) > 3:
             line_separator = ',\n' + self.indent
         else:
@@ -1402,14 +1454,14 @@ class FragmentsWalker(pysource.SourceWalker, object):
         n.parent = node.parent
         self.set_pos_info(n, start, finish)
         self.set_pos_info(node, start, finish)
-        self.indentLess(INDENT_PER_LEVEL)
+        self.indent_less(INDENT_PER_LEVEL)
         self.prec = p
         self.prune()
 
-    def engine(self, entry, startnode):
+    def template_engine(self, entry, startnode):
         """The format template interpetation engine.  See the comment at the
-        beginning of this module for the how we interpret format specifications such as
-        %c, %C, and so on.
+        beginning of this module for the how we interpret format
+        specifications such as %c, %C, and so on.
         """
 
         # print("-----")
@@ -1446,8 +1498,8 @@ class FragmentsWalker(pysource.SourceWalker, object):
                 self.write('%')
                 self.set_pos_info(node, start, len(self.f.getvalue()))
 
-            elif typ == '+': self.indentMore()
-            elif typ == '-': self.indentLess()
+            elif typ == '+': self.indent_more()
+            elif typ == '-': self.indent_less()
             elif typ == '|': self.write(self.indent)
             # no longer used, since BUILD_TUPLE_n is pretty printed:
             elif typ == 'r': recurse_node = True
@@ -1460,14 +1512,24 @@ class FragmentsWalker(pysource.SourceWalker, object):
                 arg += 1
             elif typ == 'c':
                 start = len(self.f.getvalue())
-                self.preorder(node[entry[arg]])
+
+                index = entry[arg]
+                if isinstance(index, tuple):
+                    assert node[index[0]] == index[1], (
+                        "at %s[%d], %s vs %s" % (
+                            node.kind, arg, node[index[0]].kind, index[1])
+                        )
+                    index = index[0]
+                if isinstance(index, int):
+                    self.preorder(node[index])
+
                 finish = len(self.f.getvalue())
 
                 # FIXME rocky: figure out how to get this to be table driven
                 # for loops have two positions that correspond to a single text
                 # location. In "for i in ..." there is the initialization "i" code as well
                 # as the iteration code with "i"
-                match = re.search(r'^for', startnode.type)
+                match = re.search(r'^for', startnode.kind)
                 if match and entry[arg] == 3:
                     self.set_pos_info(node[0], start, finish)
                     for n in node[2]:
@@ -1558,154 +1620,15 @@ class FragmentsWalker(pysource.SourceWalker, object):
             self.set_pos_info(startnode, startnode_start, fin)
 
         # FIXME rocky: figure out how to get these casess to be table driven.
-        #
-        # 1. for loops. For loops have two positions that correspond to a single text
-        # location. In "for i in ..." there is the initialization "i" code as well
-        # as the iteration code with "i".  A "copy" spec like %X3,3 - copy parame
-        # 3 to param 2 would work
-        #
         # 2. subroutine calls. It the last op is the call and for purposes of printing
         # we don't need to print anything special there. However it encompases the
         # entire string of the node fn(...)
-        match = re.search(r'^try', startnode.type)
+        match = re.search(r'^call_function', startnode.kind)
         if match:
-            self.set_pos_info(node[0], startnode_start, startnode_start+len("try:"))
-            self.set_pos_info(node[2], node[3].finish, node[3].finish)
-        else:
-            match = re.search(r'^call_function', startnode.type)
-            if match:
-                last_node = startnode[-1]
-                # import traceback; traceback.print_stack()
-                self.set_pos_info(last_node, startnode_start, self.last_finish)
+            last_node = startnode[-1]
+            # import traceback; traceback.print_stack()
+            self.set_pos_info(last_node, startnode_start, self.last_finish)
         return
-
-    def make_function(self, node, isLambda, nested=1, code=None):
-        """Dump function defintion, doc string, and function body."""
-
-        def build_param(ast, name, default):
-            """build parameters:
-                - handle defaults
-                - handle format tuple parameters
-            """
-            if self.version < 3.0:
-                # if formal parameter is a tuple, the paramater name
-                # starts with a dot (eg. '.1', '.2')
-                if name.startswith('.'):
-                    # replace the name with the tuple-string
-                    name = self.get_tuple_parameter(ast, name)
-                    pass
-                pass
-
-            if default:
-                maybe_show_ast_param_default(self.showast, name, default)
-                result = '%s=' % name
-                old_last_finish = self.last_finish
-                self.last_finish = len(result)
-                value = self.traverse(default, indent='')
-                self.last_finish = old_last_finish
-                result += value
-                if result[-2:] == '= ':	# default was 'LOAD_CONST None'
-                    result += 'None'
-                return result
-            else:
-                return name
-
-        # MAKE_FUNCTION_... or MAKE_CLOSURE_...
-        assert node[-1].type.startswith('MAKE_')
-
-        args_node = node[-1]
-        if isinstance(args_node.attr, tuple):
-            if self.version <= 3.3 and len(node) > 2 and node[-3] != 'LOAD_LAMBDA':
-                # positional args are after kwargs
-                defparams = node[1:args_node.attr[0]+1]
-            else:
-                # positional args are before kwargs
-                defparams = node[:args_node.attr[0]]
-            pos_args, kw_args, annotate_argc  = args_node.attr
-        else:
-            defparams = node[:args_node.attr]
-            kw_args, annotate_argc  = (0, 0)
-            pass
-
-        if self.version > 3.0 and isLambda and iscode(node[-3].attr):
-            code = node[-3].attr
-        else:
-            code = code.attr
-
-        assert iscode(code)
-        code = Code(code, self.scanner, self.currentclass)
-
-        # add defaults values to parameter names
-        argc = code.co_argcount
-        paramnames = list(code.co_varnames[:argc])
-
-        # defaults are for last n parameters, thus reverse
-        paramnames.reverse(); defparams.reverse()
-
-        try:
-            ast = self.build_ast(code._tokens,
-                                 code._customize,
-                                 isLambda = isLambda,
-                                 noneInNames = ('None' in code.co_names))
-        except ParserError as p:
-            self.write(str(p))
-            self.ERROR = p
-            return
-
-        # build parameters
-
-        params = [build_param(ast, name, default) for
-                  name, default in zip_longest(paramnames, defparams, fillvalue=None)]
-
-        params.reverse() # back to correct order
-
-        if 4 & code.co_flags:	# flag 2 -> variable number of args
-            params.append('*%s' % code.co_varnames[argc])
-            argc += 1
-        if 8 & code.co_flags:	# flag 3 -> keyword args
-            params.append('**%s' % code.co_varnames[argc])
-            argc += 1
-
-        # dump parameter list (with default values)
-        indent = self.indent
-        if isLambda:
-            self.write("lambda ", ", ".join(params))
-        else:
-            self.write("(", ", ".join(params))
-            # self.println(indent, '#flags:\t', int(code.co_flags))
-
-        if kw_args > 0:
-            if argc > 0:
-                self.write(", *, ")
-            else:
-                self.write("*, ")
-            for n in node:
-                if n == 'pos_arg':
-                    continue
-                self.preorder(n)
-                break
-            pass
-
-        if isLambda:
-            self.write(": ")
-        else:
-            self.println("):")
-
-        if len(code.co_consts)>0 and code.co_consts[0] is not None and not isLambda: # ugly
-            # docstring exists, dump it
-            print_docstring(self, indent, code.co_consts[0])
-
-        code._tokens = None # save memory
-        assert ast == 'stmts'
-
-        all_globals = find_all_globals(ast, set())
-        for g in ((all_globals & self.mod_globs) | find_globals(ast, set())):
-            self.println(self.indent, 'global ', g)
-        self.mod_globs -= all_globals
-        rn = ('None' in code.co_names) and not find_none(ast)
-        self.gen_source(ast, code.co_name, code._customize, isLambda=isLambda,
-                          returnNone=rn)
-        code._tokens = None; code._customize = None # save memory
 
     @classmethod
     def _get_mapping(cls, node):
@@ -1786,10 +1709,48 @@ def deparse_code(version, co, out=StringIO(), showasm=False, showast=False,
     if deparsed.ERROR:
         raise deparsed.ERROR
 
+    # To keep the API consistent with previous releases, convert
+    # deparse.offset values into NodeInfo items
+    for tup, node in deparsed.offsets.items():
+        deparsed.offsets[tup] = NodeInfo(node = node, start = node.start,
+                                         finish = node.finish)
+
+    deparsed.scanner = scanner
     return deparsed
+
+from bisect import bisect_right
+def find_gt(a, x):
+    'Find leftmost value greater than x'
+    i = bisect_right(a, x)
+    if i != len(a):
+        return a[i]
+    raise ValueError
+
+def deparse_code_around_offset(name, offset, version, co, out=StringIO(),
+                               showasm=False, showast=False,
+                               showgrammar=False, is_pypy=False):
+    """
+    Like deparse_code(), but given  a function/module name and
+    offset, finds the node closest to offset. If offset is not an instruction boundary,
+    we raise an IndexError.
+    """
+    deparsed = deparse_code(version, co, out, showasm, showast, showgrammar, is_pypy)
+    if (name, offset) in deparsed.offsets.keys():
+        # This is the easy case
+        return deparsed
+
+    valid_offsets = [t for t in deparsed.offsets if isinstance(t[1], int)]
+    offset_list = sorted([t[1] for t in valid_offsets if t[0] == name])
+
+    # FIXME: should check for branching?
+    found_offset = find_gt(offset_list, offset)
+    deparsed.offsets[name, offset] = deparsed.offsets[name, found_offset]
+    return deparsed
+
 
 if __name__ == '__main__':
 
+    from uncompyle6 import IS_PYPY
     def deparse_test(co, is_pypy=IS_PYPY):
         sys_version = sys.version_info.major + (sys.version_info.minor / 10.0)
         walk = deparse_code(sys_version, co, showasm=False, showast=False,
@@ -1803,7 +1764,7 @@ if __name__ == '__main__':
             nodeInfo = walk.offsets[name, offset]
             node = nodeInfo.node
             extractInfo = walk.extract_node_info(node)
-            print("code: %s" % node.type)
+            print("code: %s" % node.kind)
             # print extractInfo
             print(extractInfo.selectedText)
             print(extractInfo.selectedLine)
@@ -1813,7 +1774,36 @@ if __name__ == '__main__':
                 print("Contained in...")
                 print(extractInfo.selectedLine)
                 print(extractInfo.markerLine)
-                print("code: %s" % p.type)
+                print("code: %s" % p.kind)
+                print('=' * 40)
+                pass
+            pass
+        return
+
+    def deparse_test_around(offset, name, co, is_pypy=IS_PYPY):
+        sys_version = sys.version_info.major + (sys.version_info.minor / 10.0)
+        walk = deparse_code_around_offset(name, offset, sys_version, co, showasm=False, showast=False,
+                            showgrammar=False, is_pypy=IS_PYPY)
+        print("deparsed source")
+        print(walk.text, "\n")
+        print('------------------------')
+        for name, offset in sorted(walk.offsets.keys(),
+                                   key=lambda x: str(x[0])):
+            print("name %s, offset %s" % (name, offset))
+            nodeInfo = walk.offsets[name, offset]
+            node = nodeInfo.node
+            extractInfo = walk.extract_node_info(node)
+            print("code: %s" % node.kind)
+            # print extractInfo
+            print(extractInfo.selectedText)
+            print(extractInfo.selectedLine)
+            print(extractInfo.markerLine)
+            extractInfo, p = walk.extract_parent_info(node)
+            if extractInfo:
+                print("Contained in...")
+                print(extractInfo.selectedLine)
+                print(extractInfo.markerLine)
+                print("code: %s" % p.kind)
                 print('=' * 40)
                 pass
             pass
@@ -1838,6 +1828,9 @@ if __name__ == '__main__':
 
     # check_args(['3', '5'])
     # deparse_test(get_code_for_fn(gcd))
-    deparse_test(get_code_for_fn(test))
+    # deparse_test(get_code_for_fn(test))
     # deparse_test(get_code_for_fn(FragmentsWalker.fixup_offsets))
+    # deparse_test(get_code_for_fn(FragmentsWalker.n_build_list))
+    print('=' * 30)
+    deparse_test_around(408, 'n_build_list', get_code_for_fn(FragmentsWalker.n_build_list))
     # deparse_test(inspect.currentframe().f_code)

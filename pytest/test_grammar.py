@@ -11,15 +11,16 @@ def test_grammar():
         remain_tokens = set([re.sub('_CONT$','', t) for t in remain_tokens])
         remain_tokens = set(remain_tokens) - opcode_set
         assert remain_tokens == set([]), \
-            "Remaining tokens %s\n====\n%s" % (remain_tokens, p.dumpGrammar())
+            "Remaining tokens %s\n====\n%s" % (remain_tokens, p.dump_grammar())
 
     p = get_python_parser(PYTHON_VERSION, is_pypy=IS_PYPY)
-    lhs, rhs, tokens, right_recursive = p.checkSets()
+    lhs, rhs, tokens, right_recursive = p.check_sets()
     expect_lhs = set(['expr1024', 'pos_arg'])
     unused_rhs = set(['build_list', 'call_function', 'mkfunc',
                       'mklambda',
                       'unpack', 'unpack_list'])
-    expect_right_recursive = [['designList', ('designator', 'DUP_TOP', 'designList')]]
+    expect_right_recursive = frozenset([('designList',
+                                         ('designator', 'DUP_TOP', 'designList'))])
     if PYTHON3:
         expect_lhs.add('load_genexpr')
 
@@ -39,13 +40,14 @@ def test_grammar():
     s = get_scanner(PYTHON_VERSION, IS_PYPY)
     ignore_set = set(
             """
-            JUMP_BACK CONTINUE RETURN_END_IF
+            JUMP_BACK CONTINUE
             COME_FROM COME_FROM_EXCEPT
             COME_FROM_EXCEPT_CLAUSE
             COME_FROM_LOOP COME_FROM_WITH
             COME_FROM_FINALLY ELSE
             LOAD_GENEXPR LOAD_ASSERT LOAD_SETCOMP LOAD_DICTCOMP
-            LAMBDA_MARKER RETURN_LAST
+            LAMBDA_MARKER
+            RETURN_END_IF RETURN_END_IF_LAMBDA RETURN_VALUE_LAMBDA RETURN_LAST
             """.split())
     if 2.6 <= PYTHON_VERSION <= 2.7:
         opcode_set = set(s.opc.opname).union(ignore_set)

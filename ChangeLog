@@ -1,6 +1,1139 @@
+2017-10-12  rocky <rb@dustyfeet.com>
+
+	* Makefile, admin-tools/how-to-make-a-release.txt,
+	uncompyle6/version.py: Get ready for release 2.13.2
+
+2017-10-11  rocky <rb@dustyfeet.com>
+
+	* admin-tools/check-older-versions.sh,
+	admin-tools/make-dist-newer.sh, admin-tools/make-dist-older.sh,
+	admin-tools/pyenv-newer-versions, admin-tools/pyenv-older-versions,
+	admin-tools/setup-master.sh: Administrivia
+
+2017-10-11  rocky <rb@dustyfeet.com>
+
+	* admin-tools/check-newer-versions.sh,
+	admin-tools/check-older-versions.sh,
+	admin-tools/how-to-make-a-release.txt,
+	admin-tools/make-dist-newer.sh, admin-tools/make-dist-older.sh: 
+	Adminstrivia
+
+2017-10-11  rocky <rb@dustyfeet.com>
+
+	* admin-tools/README.md, admin-tools/check-newer-versions.sh,
+	admin-tools/check-older-versions.sh,
+	admin-tools/how-to-make-a-release.txt,
+	admin-tools/make-dist-newer.sh, admin-tools/make-dist-older.sh,
+	admin-tools/pyenv-newer-versions, admin-tools/pyenv-older-versions,
+	admin-tools/setup-master.sh, admin-tools/setup-python-2.4.sh: Some
+	admin tools I use.
+
+2017-10-11  rocky <rb@dustyfeet.com>
+
+	* setup.py: remove python_requires
+
+2017-10-11  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/bin/uncompile.py: Program name was incorrect.  uncompile -> uncompyle6
+
+2017-10-11  rocky <rb@dustyfeet.com>
+
+	* Makefile, NEWS, setup.py, uncompyle6/version.py: Administrivia
+	woes
+
+2017-10-10  rocky <rb@dustyfeet.com>
+
+	* : commit 9cfd7d669edc7f065bfc314924cfecbb6c7219ec Author: rocky
+	<rb@dustyfeet.com> Date:   Tue Oct 10 21:50:06 2017 -0400
+
+2017-10-10  rocky <rb@dustyfeet.com>
+
+	* HOW-TO-REPORT-A-BUG.md, test/Makefile, uncompyle6/parser.py,
+	uncompyle6/parsers/parse3.py, uncompyle6/scanners/scanner3.py,
+	uncompyle6/semantics/consts.py, uncompyle6/semantics/pysource.py: 
+	Improve parse trace. lambda fixes yet again
+
+2017-10-10  rocky <rb@dustyfeet.com>
+
+	* test/simple_source/branching/02_ifelse_lambda.py,
+	uncompyle6/semantics/consts.py: Address dead code in lambda ifelse
+
+2017-10-10  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/parsers/parse24.py, uncompyle6/scanners/scanner3.py: 
+	Misc bugs
+
+2017-10-10  R. Bernstein <rocky@users.noreply.github.com>
+
+	* : Merge pull request #131 from rocky/type2kind-rework Adjust for spark-parser 2.7.0 incompatibilities
+
+2017-10-10  rocky <rb@dustyfeet.com>
+
+	* __pkginfo__.py, pytest/test_grammar.py, pytest/test_pysource.py,
+	uncompyle6/parser.py, uncompyle6/parsers/astnode.py,
+	uncompyle6/parsers/parse2.py, uncompyle6/parsers/parse24.py,
+	uncompyle6/parsers/parse26.py, uncompyle6/parsers/parse27.py,
+	uncompyle6/parsers/parse3.py, uncompyle6/parsers/parse32.py,
+	uncompyle6/parsers/parse34.py, uncompyle6/parsers/parse35.py,
+	uncompyle6/parsers/parse36.py, uncompyle6/parsers/parse37.py,
+	uncompyle6/scanners/scanner22.py, uncompyle6/scanners/scanner26.py,
+	uncompyle6/scanners/scanner27.py, uncompyle6/scanners/scanner3.py,
+	uncompyle6/scanners/tok.py, uncompyle6/semantics/check_ast.py,
+	uncompyle6/semantics/fragments.py,
+	uncompyle6/semantics/make_function.py,
+	uncompyle6/semantics/pysource.py, uncompyle6/verify.py,
+	uncompyle6/version.py: Adjust for spark-parser 2.7.0
+	incompatabilities
+
+2017-10-05  rocky <rb@dustyfeet.com>
+
+	* : One more test
+
+2017-10-05  rocky <rb@dustyfeet.com>
+
+	* : commit b3359439f94c136619b198beaecbfce1b827d2db Author: rocky
+	<rb@dustyfeet.com> Date:   Thu Oct 5 11:00:55 2017 -0400
+
+2017-10-03  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/parsers/parse2.py, uncompyle6/parsers/parse24.py,
+	uncompyle6/parsers/parse26.py: handle newer parser reduction
+	behavior
+
+2017-10-03  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/semantics/pysource.py: Remove schumutz
+
+2017-10-03  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/semantics/pysource.py: More table doc tweaks
+
+2017-10-03  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/semantics/fragments.py,
+	uncompyle6/semantics/pysource.py: Go over table-semantics
+	description yet again
+
+2017-10-02  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/parsers/parse2.py, uncompyle6/parsers/parse3.py: 
+	spark-parser induced changes...  reduce rules can be called without token streams.
+
+2017-09-30  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/parser.py, uncompyle6/scanners/scanner2.py,
+	uncompyle6/scanners/scanner3.py: Document hacky customize arg count
+	better.
+
+2017-09-26  rocky <rb@dustyfeet.com>
+
+	* README.rst: Word hacking
+
+2017-09-26  rocky <rb@dustyfeet.com>
+
+	* ChangeLog, NEWS: Get ready for release 2.12.0
+
+2017-09-26  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/parsers/parse3.py: No unicode in Python3.  but we need it in Python2. The bug was probably introduced as a
+	result of recent Python code type unteroperability canonicalization
+
+2017-09-26  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/parsers/parse3.py: Pyton 3.1 Annotation args can be
+	unicode?
+
+2017-09-25  rocky <rb@dustyfeet.com>
+
+	* : Adjust for xdis opcode JUMP_OPS. release 2.12.0
+
+2017-09-21  rocky <rb@dustyfeet.com>
+
+	* pytest/test_pysource.py: Python 3 compatibility
+
+2017-09-21  rocky <rb@dustyfeet.com>
+
+	* pytest/test_pysource.py, uncompyle6/semantics/consts.py,
+	uncompyle6/semantics/fragments.py, uncompyle6/semantics/pysource.py: 
+	Unit test for format-specifiers And in the process we catch some small bugs
+
+2017-09-20  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/semantics/fragments.py,
+	uncompyle6/semantics/pysource.py: Tidy pysource and fragments a
+	little more
+
+2017-09-20  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/semantics/consts.py: Tidy/regularize table entry
+	formatting
+
+2017-09-20  rocky <rb@dustyfeet.com>
+
+	* test/test_pythonlib.py, uncompyle6/semantics/pysource.py: Small
+	fixes test_pyenvlib.py: it is sys.exit(), not exit() pysource.py:
+	reinstate nod type of async_func_call
+
+2017-09-20  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/semantics/consts.py, uncompyle6/semantics/pysource.py: 
+	More small doc changes
+
+2017-09-20  rocky <rb@dustyfeet.com>
+
+	* pytest/test_pysource.py, uncompyle6/semantics/pysource.py: Update
+	Table-driven info...  Start a pysource unit test.
+
+2017-09-17  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/semantics/fragments.py,
+	uncompyle6/semantics/pysource.py: engine -> template_engine
+
+2017-09-13  rocky <rb@dustyfeet.com>
+
+	* test/Makefile: Need weak-verification on 3.4 for now
+
+2017-09-10  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/semantics/fragments.py: Revert one of the changes
+	pending a better fix
+
+2017-09-10  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/semantics/fragments.py,
+	uncompyle6/semantics/pysource.py: More semantic action cleanup
+
+2017-09-10  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/scanners/scanner3.py, uncompyle6/scanners/tok.py: Match
+	Python 3.4's terms a little names better
+
+2017-09-09  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/scanners/tok.py: Revert last revert
+
+2017-09-09  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/scanners/tok.py: Revert last change
+
+2017-09-09  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/scanners/tok.py: New-style Python classes only, please.
+
+2017-08-31  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/scanner.py, uncompyle6/scanners/scanner37.py: Skeletal
+	support for Python 3.7 Largely failing though.
+
+2017-08-31  rocky <rb@dustyfeet.com>
+
+	* README.rst: Remove python versions tag I think it's messing up Pypi's very fussy formatting
+
+2017-08-31  rocky <rb@dustyfeet.com>
+
+	* ChangeLog, NEWS, README.rst, __pkginfo__.py,
+	uncompyle6/parsers/parse37.py,
+	uncompyle6/semantics/make_function.py, uncompyle6/version.py: Get
+	ready for release 2.11.5
+
+2017-08-15  rocky <rb@dustyfeet.com>
+
+	* Makefile: 3.7 support
+
+2017-08-15  rocky <rb@dustyfeet.com>
+
+	* ChangeLog, NEWS, uncompyle6/version.py: Get ready for release
+	2.11.4
+
+2017-08-15  rocky <rb@dustyfeet.com>
+
+	* __pkginfo__.py, pytest/validate.py, uncompyle6/parser.py,
+	uncompyle6/scanner.py: Misc cleanups...  remove code now in xdis require at least xdis 3.5.4 PyPy tolerance
+	in validate testing
+
+2017-08-13  rocky <rb@dustyfeet.com>
+
+	* pytest/test_basic.py, uncompyle6/parser.py, uncompyle6/scanner.py: 
+	Allow 3-part version string lookups, e.g 2.7.1 We allow a float here, but if passed a string like '2.7'. or
+	'2.7.13', accept that in looking up either a scanner or a parser.
+
+2017-08-10  rocky <rb@dustyfeet.com>
+
+	* README.rst: Link typo Name is trepan2 now not trepan
+
+2017-08-09  rocky <rb@dustyfeet.com>
+
+	* ChangeLog, NEWS, README.rst, __pkginfo__.py,
+	uncompyle6/semantics/consts.py, uncompyle6/version.py: Get ready for
+	release 2.11.3 need xdis 3.5.1 for now. Adjust for xdis "is-not" which we need as
+	"is not"
+
+2017-08-02  rocky <rb@dustyfeet.com>
+
+	* __pkginfo__.py: Revert commit to wrong branch
+
+2017-08-02  rocky <rb@dustyfeet.com>
+
+	* __pkginfo__.py: Remove six from Python-2.4/2.5 package
+
+2017-07-17  rocky <rb@dustyfeet.com>
+
+	* __pkginfo__.py, uncompyle6/scanners/scanner2.py,
+	uncompyle6/scanners/scanner3.py, uncompyle6/scanners/scanner30.py: 
+	xdis's "exception match" is now "exception-match"
+
+2017-07-15  rocky <rb@dustyfeet.com>
+
+	* __pkginfo__.py: xdis 3.5.1 is botched?
+
+2017-07-14  rocky <rb@dustyfeet.com>
+
+	* __pkginfo__.py: Use newer xdis
+
+2017-07-14  R. Bernstein <rocky@users.noreply.github.com>
+
+	* README.rst: Fixes issue #124
+
+2017-07-14  rocky <rb@dustyfeet.com>
+
+	* HISTORY.md: History updates
+
+2017-07-09  rocky <rb@dustyfeet.com>
+
+	* README.rst: RsT doc formatting
+
+2017-07-09  rocky <rb@dustyfeet.com>
+
+	* ChangeLog, HOW-TO-REPORT-A-BUG.md, NEWS, uncompyle6/version.py: 
+	Get ready for release 2.11.2
+
+2017-07-08  rocky <rb@dustyfeet.com>
+
+	* __pkginfo__.py, uncompyle6/scanner.py,
+	uncompyle6/scanners/scanner2.py, uncompyle6/scanners/scanner26.py,
+	uncompyle6/scanners/scanner3.py, uncompyle6/scanners/scanner30.py,
+	uncompyle6/scanners/tok.py: Use xdis 3.5.0's opcode sets
+
+2017-07-08  rocky <rb@dustyfeet.com>
+
+	* test/test_pyenvlib.py, uncompyle6/scanners/pypy32.py,
+	uncompyle6/scanners/pypy35.py, uncompyle6/scanners/scanner15.py,
+	uncompyle6/scanners/scanner32.py, uncompyle6/scanners/scanner34.py,
+	uncompyle6/scanners/scanner35.py, uncompyle6/scanners/scanner36.py: 
+	Start supporting Pypy 3.5 (5.7.1-beta)
+
+2017-07-05  rocky <rb@dustyfeet.com>
+
+	* test/simple_source/bug26/03_loop_if_cf.py,
+	uncompyle6/parsers/parse26.py: Loops in Python 2.4-2.6 loop
+	come_from Looks like Python 2.4-2.6 may have a COME_FROM(_LOOP) before the
+	jump_back.  Fixes Issue #123
+
+2017-06-29  rocky <rb@dustyfeet.com>
+
+	* : Work around not having real flow-control analysis
+
+2017-06-28  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/semantics/make_function.py: A guard against badly
+	formated bytecode
+
+2017-06-25  rocky <rb@dustyfeet.com>
+
+	* ChangeLog, NEWS, test/simple_source/bug31/04_def_annotate.py,
+	uncompyle6/semantics/make_function.py,
+	uncompyle6/semantics/pysource.py: 3.x funciton and annotation bug
+	fixes
+
+2017-06-25  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/version.py: Get ready for release 2.11.1
+
+2017-06-24  rocky <rb@dustyfeet.com>
+
+	* __pkginfo__.py, uncompyle6/scanner.py,
+	uncompyle6/scanners/scanner2.py, uncompyle6/scanners/scanner3.py,
+	uncompyle6/scanners/scanner30.py, uncompyle6/semantics/pysource.py: 
+	Use xdis' instruction offset calculation fns..  next_offset, op_size, has_argument
+
+2017-06-19  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/semantics/pysource.py: Python 2 sometimes need
+	str->uncode in writing?
+
+2017-06-19  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/semantics/pysource.py: Allow deparsed out to be str as
+	well as unicode
+
+2017-06-18  rocky <rb@dustyfeet.com>
+
+	* ChangeLog, NEWS, uncompyle6/version.py: Get ready for release
+	2.11.0
+
+2017-06-13  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/semantics/fragments.py: Adjust nodeInfo if it is a
+	Token
+
+2017-06-13  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/semantics/fragments.py: Add nonterminal node in
+	extractInfo
+
+2017-06-10  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/semantics/fragments.py,
+	uncompyle6/semantics/make_function.py: Fragment tag more expressions Revise make_function3 comment wrt args and kwargs
+
+2017-06-10  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/semantics/fragments.py: Fragment tag array subscripts
+
+2017-06-10  R. Bernstein <rocky@users.noreply.github.com>
+
+	* README.rst: Create README.rst
+
+2017-06-10  R. Bernstein <rocky@users.noreply.github.com>
+
+	* README.rst: Create README.rst
+
+2017-06-10  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/semantics/fragments.py: Set YIELD_VALUE offset in a
+	<yield> expr
+
+2017-06-10  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/semantics/make_function.py: Python 3.2 MAKE_FUNCTION
+	again..  Was handling bug32/01_named_and_kwargs.py wrong again
+
+2017-06-09  R. Bernstein <rocky@users.noreply.github.com>
+
+	* : Merge pull request #119 from rocky/scan-longconstant Simplify access to L65536 ...
+
+2017-06-09  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/semantics/make_function.py: Attempt to document the
+	MAKE_FUNCTION/MAKE_LAMBDA mess...  in Python 3.0+
+
+2017-06-08  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/semantics/make_function.py: Correct make_function3 for
+	Pytohn 3.2
+
+2017-06-08  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/semantics/pysource.py: Disable "continue" removal in
+	pysource.py "continue" could be the only statement and then removing it might
+	lead to a dangling "else".
+
+2017-06-07  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/semantics/fragments.py: Mark "pass" offsets.  Start routine to find previous node.
+
+2017-06-06  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/parsers/parse3.py, uncompyle6/semantics/fragments.py: 
+	Remove hacky fragments try fixup...  hacky call_function code is also not needed or will be reinstated
+	properly. Better grammar structure for Python 3.6 call_function.
+
+2017-06-05  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/parsers/parse3.py, uncompyle6/parsers/parse36.py,
+	uncompyle6/scanners/scanner36.py: BUILD_{MAP,TUPLE}_UNPACK &
+	CALL_FUNCTION_EX_KW...  Bang on these in 3.6. Not totally succesfull right now.  In fact a
+	regression on one of the test cases
+
+2017-06-05  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/semantics/fragments.py: Important fragments bug fix...  start, finish that had been adjusted wasn't getting reflected in
+	final returned deparsed.offsets dictionary. Redo keeping API
+	compatibility, i.e we still use namedtuple NodeInfo.
+
+2017-06-04  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/parsers/parse3.py, uncompyle6/semantics/pysource.py: 
+	Python 3.5 *args with kwargs handling.  3.5 is a snowflake here. Thank you, Python.  Fully fixes Issue 95.  3.6 is broken on this source, but for a *different* reason. Sigh.
+
+2017-06-03  rocky <rb@dustyfeet.com>
+
+	* README.rst, __pkginfo__.py,
+	test/simple_source/bug35/04_CALL_FUNCTION_VAR_KW.py,
+	uncompyle6/semantics/fragments.py: Small changes.  fragment tag EXEC_STMT
+
+2017-06-03  rocky <rb@dustyfeet.com>
+
+	* .travis.yml: Streamline .travis.yml a little bit
+
+2017-06-03  rocky <rb@dustyfeet.com>
+
+	* __pkginfo__.py: We need six
+
+2017-06-03  rocky <rb@dustyfeet.com>
+
+	* README.rst, circle.yml, requirements-dev.txt: Go over
+	administrivia
+
+2017-06-03  rocky <rb@dustyfeet.com>
+
+	* ChangeLog, NEWS, uncompyle6/version.py: Get ready for release
+	2.10.1
+
+2017-06-03  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/semantics/fragments.py,
+	uncompyle6/semantics/pysource.py: Fragment bugs fragment.py: * deparse_code_aorund_offset: was sometimes returning the wrong type * capture function name offset * lint imports pysource.py: use a clearer variable name
+
+2017-06-02  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/semantics/fragments.py: Track changes in ifelstmtr..  in fragments from pysource
+
+2017-05-30  rocky <rb@dustyfeet.com>
+
+	* ChangeLog, NEWS, uncompyle6/version.py: Get ready for release
+	2.10.0
+
+2017-05-30  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/semantics/fragments.py: Python 3.6 makefunction
+	handling for fragments
+
+2017-05-23  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/semantics/pysource.py: Fix up 3.6 unmapexpr
+
+2017-05-23  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/semantics/pysource.py: Fix up retreiving "async"
+	property on 3.6
+
+2017-05-23  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/semantics/pysource.py: Fix bug in a 3.6 class name.
+
+2017-05-23  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/semantics/fragments.py,
+	uncompyle6/semantics/pysource.py: Add fuzzy offset deparse lookup
+
+2017-05-21  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/scanners/scanner3.py: Correct EXTENDED_ARG handling on
+	Python 3.6...  where it can appear several times and xdis may handle it as well.
+	It possibly in other versions bug since EXTENDED_ARG is used so
+	rarely there because it has such a high value 1<<16, it's hard to
+	test and determine that.
+
+2017-05-20  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/semantics/pysource.py: Worse results. Revert some of
+	the last changes
+
+2017-05-20  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/parsers/parse3.py, uncompyle6/semantics/pysource.py: 
+	More explicit about 3.5 UNMAP_PACK Have to reduce 3.5 bytecode testing for now, code is more solid.
+
+2017-05-19  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/parsers/parse3.py, uncompyle6/parsers/parse36.py,
+	uncompyle6/scanners/scanner3.py: Simplify EXTENDED_ARG on 3.x We largely remove them and fold them itno the next op.
+	MAKE_FUNCTION though before 3.6 is an exception as that indicates an
+	annotated function
+
+2017-05-19  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/scanners/scanner26.py: EXTENDED_ARG is implemented in
+	2.6
+
+2017-05-19  rocky <rb@dustyfeet.com>
+
+	* test/simple_source/expression/06_huge_list.py,
+	uncompyle6/parsers/parse3.py, uncompyle6/semantics/pysource.py: Fix
+	EXTENDED_ARG for long lists, sets, maps
+
+2017-05-19  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/scanners/scanner3.py: Another attempt at getting
+	get_target() correct
+
+2017-05-19  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/parsers/parse3.py: Bug in pypy JUMP_IF_NOT_DEBUG
+	handling
+
+2017-05-19  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/parsers/parse36.py, uncompyle6/scanners/scanner3.py: 
+	EXTENDED_ARG handling...  get_target() wasn't taking into account EXTENDED_ARG before opcode.  This is mostly relevant in Python 3.6 where the max size before
+	needing EXTENDED_ARG has been reduced to 256, but theoretically
+	possible in earlier versions.
+
+2017-05-18  rocky <rb@dustyfeet.com>
+
+	* __pkginfo__.py: Enforce using xdis >=3.3.1 ..  to pick up bug fixes to 3.6 in xdis
+
+2017-05-17  rocky <rb@dustyfeet.com>
+
+	* __pkginfo__.py, uncompyle6/parsers/parse36.py,
+	uncompyle6/scanners/scanner3.py: Small changes....  * __pkginfo__.py: Need spark parser 1.6.1 for corrected
+	remove_rules() fn * parser36.py: remove replaced Python3 rules * scanner3.py: corrected comment. Thanks to moagstar here.  *
+
+2017-05-16  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/parsers/parse36.py: Fix broken CI on 3.6...  Another grammar rule replacing SETUP_LOOP with setup_loop
+
+2017-05-16  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/parsers/parse36.py: More EXTENDED_ARGS on 3.6
+
+2017-05-16  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/parsers/parse36.py: extend use of EXTENDED_ARGS in 3.6 switching to a wordcode seems to have made opcode fields smaller so
+	we need EXTENDED_ARG more?
+
+2017-05-16  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/parsers/parse36.py, uncompyle6/semantics/pysource.py: 
+	Allow LOAD_CONST EXTENDED_ARG
+
+2017-05-15  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/parsers/parse3.py: Reinstate 3.6 listcomp rule
+
+2017-05-15  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/parsers/parse3.py: Bang on 3.6 MAKE_FUNCTION some more
+
+2017-05-14  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/semantics/pysource.py: towards fixing a
+	3.5.CALL_FUNCTONI_VAR bug
+
+2017-05-14  rocky <rb@dustyfeet.com>
+
+	* test/simple_source/bug35/04_CALL_FUNCTION_VAR_KW.py,
+	uncompyle6/parsers/parse3.py: Python 3.5 kw arg can be an expr Fixes Issue #95
+
+2017-05-14  R. Bernstein <rocky@users.noreply.github.com>
+
+	* : Merge pull request #117 from rocky/3.6-MAKE_FUNCTION 3.6 make function
+
+2017-05-13  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/scanners/scanner3.py: MAKE_FUNCTION_FLAGS can be a
+	simpler tuple
+
+2017-05-13  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/parsers/parse3.py: Grammar rules for Python 3.6
+	MAKE_FUNCTION
+
+2017-05-13  rocky <rb@dustyfeet.com>
+
+	* README.rst, uncompyle6/parsers/parse3.py,
+	uncompyle6/parsers/parse36.py, uncompyle6/semantics/pysource.py: 
+	Bang on 3.6 MAKE_FUNCTION a bit more parse3.py, parse36.py: adding return_closure rule tags what's going
+	on with this rule pysource.py: start changing semantic rules to support code changed
+	by new make_function semantics README.rst: typo
+
+2017-05-13  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/scanners/scanner3.py: Typo
+
+2017-05-12  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/parsers/parse27.py: Bug in 2.7 decompiling ourself! Troublesome file was uncompyle6.semantics.pysource.engine()
+
+2017-05-11  R. Bernstein <rocky@users.noreply.github.com>
+
+	* : Merge pull request #113 from grkov90/patch-1 Fixed out_base bug
+
+2017-05-11  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/parsers/parse3.py, uncompyle6/scanners/scanner3.py,
+	uncompyle6/semantics/make_function.py: WIP: start 3.6 MAKE_FUNCTION
+	handling
+
+2017-05-11  Daniel Bradburn <moagstar@gmail.com>
+
+	* : Merge pull request #116 from moagstar/function_call_keyword_only Added support for Python 3.6 CALL_FUNCTION_KW
+
+2017-05-10  Daniel Bradburn <moagstar@gmail.com>
+
+	* uncompyle6/semantics/pysource.py: Fixed bug in compiling double
+	star arg only function calls where the closing parenthesis would be
+	missed
+
+2017-05-10  Daniel Bradburn <moagstar@gmail.com>
+
+	* requirements-dev.txt: Adding requirement for pytest >= 3.0 to fix
+	strange INTERNALERROR in combination with hypothesis when using
+	pytest 2.6.4
+
+2017-05-10  Daniel Bradburn <moagstar@gmail.com>
+
+	* pytest/test_CALL_FUNCTION_KW.sh, pytest/test_function_call.py,
+	uncompyle6/parsers/parse3.py, uncompyle6/parsers/parse36.py,
+	uncompyle6/scanners/scanner36.py, uncompyle6/semantics/pysource.py: 
+	Added support for support for Python 3.6 CALL_FUNCTION_KW
+
+2017-05-08  rocky <rb@dustyfeet.com>
+
+	* appveyor.yml, test/test_pyenvlib.py,
+	uncompyle6/semantics/pysource.py: pysource guard and another
+	appveyor test
+
+2017-05-08  rocky <rb@dustyfeet.com>
+
+	* appveyor.yml: appveyor take 2
+
+2017-05-08  rocky <rb@dustyfeet.com>
+
+	* appveyor.yml, appveyor/install.ps1, appveyor/run_with_env.cmd: Try
+	appveyor
+
+2017-05-07  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/semantics/pysource.py: More guarded CONTINUE deletion
+
+2017-05-07  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/scanner.py, uncompyle6/scanners/scanner3.py,
+	uncompyle6/semantics/pysource.py: Reduce spurious "continue"
+	statements
+
+2017-05-07  rocky <rb@dustyfeet.com>
+
+	* test/Makefile: --weak-verify on 3.3 with inclusion of last commit Note that the result is sematically equivalent, so it is is correct.
+
+2017-05-07  rocky <rb@dustyfeet.com>
+
+	* test/simple_source/looping/12_if_while_true_pass.py,
+	uncompyle6/scanners/scanner3.py: Python 3.x control-flow bug...  "pass" statement inside "while True"
+
+2017-05-07  rocky <rb@dustyfeet.com>
+
+	* HOW-TO-REPORT-A-BUG.md: Small typo
+
+2017-05-07  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/scanners/scanner3.py: Fix improper COME_FROM_EXCEPT in
+	Python 3.3+
+
+2017-05-06  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/parsers/parse33.py: python 3.3 while True parsing bug
+
+2017-05-06  rocky <rb@dustyfeet.com>
+
+	* ChangeLog, NEWS, uncompyle6/version.py: Get ready for release
+	2.9.11
+
+2017-05-06  rocky <rb@dustyfeet.com>
+
+	* test/Makefile: fix PYTHON variable setting in test/Makefile
+
+2017-05-06  rocky <rb@dustyfeet.com>
+
+	* test/simple_source/bug32/01_try_except_raise.py,
+	test/simple_source/bug32/03_if.py, uncompyle6/parsers/parse32.py,
+	uncompyle6/parsers/parse33.py: Fix more Python3.2 parser errors
+
+2017-05-05  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/parsers/parse32.py, uncompyle6/scanners/scanner3.py: 
+	Improve Python 3.2 decompilation ...  by removing a lot of the control-flow labels of 3.3+
+
+2017-05-05  rocky <rb@dustyfeet.com>
+
+	* .travis.yml: Try CI testing on Python 3.6
+
+2017-05-03  Gregory <grkov90@gmail.com>
+
+	* uncompyle6/main.py: Some fix
+
+2017-05-03  Gregory <grkov90@gmail.com>
+
+	* uncompyle6/main.py: Fixed out_base bug Variable filename using in for tags uncompyle6 -o haven't worked argument -o haven't worked
+
+2017-05-02  rocky <rb@dustyfeet.com>
+
+	* test/simple_source/bug35/01_map_unpack.py, uncompyle6/parser.py,
+	uncompyle6/parsers/parse3.py, uncompyle6/parsers/parse35.py,
+	uncompyle6/semantics/pysource.py: Bang more on BUIlD_MAP_UNPACK there are still bugs. Note: {**{'x': 1}, **{'y': 2}} and {{'x': 1}, **{'y': 2}} generate the same Python 3.5+ bytecode.
+
+2017-05-02  rocky <rb@dustyfeet.com>
+
+	* test/simple_source/bug35/01_map_unpack.py, uncompyle6/parser.py,
+	uncompyle6/parsers/parse3.py, uncompyle6/parsers/parse35.py: 
+	BUILD_MAP_UNPACK'ing of dictionaries in 3.5
+
+2017-05-01  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/semantics/pysource.py: Remove extra unpack *. Issue #98
+
+2017-04-29  R. Bernstein <rocky@users.noreply.github.com>
+
+	* HISTORY.md: Update HISTORY.md
+
+2017-04-29  rocky <rb@dustyfeet.com>
+
+	* test/simple_source/bug35/01_map_unpack.py,
+	uncompyle6/parsers/parse35.py, uncompyle6/semantics/pysource.py: 
+	Handle BUILD_MAP_UNPACK in a build_list
+
+2017-04-27  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/semantics/pysource.py: A hacky way to get
+	CALL_FUNCTION_EX_KW to work.
+
+2017-04-26  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/semantics/pysource.py: remove debug code
+
+2017-04-25  rocky <rb@dustyfeet.com>
+
+	* test/simple_source/bug36/01_call_function.py,
+	uncompyle6/parsers/parse36.py, uncompyle6/scanners/scanner36.py,
+	uncompyle6/semantics/pysource.py: Python 3.6 CALL_FUNCTION_EX first
+	attempt
+
+2017-04-22  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/parser.py, uncompyle6/parsers/parse34.py: Reduse scope
+	of LOAD_ASSERT as expr to 3.4+
+
+2017-04-22  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/parser.py, uncompyle6/verify.py: LOAD_ASSERT can also
+	be an expr This may have the undesirable property that assert statements might
+	get tagged with equivalant low-level Python code that uses "raise
+	AssertionError", but so be it.  Fixes #103
+
+2017-04-22  R. Bernstein <rocky@users.noreply.github.com>
+
+	* HISTORY.md: Update HISTORY.md
+
+2017-04-22  R. Bernstein <rocky@users.noreply.github.com>
+
+	* HISTORY.md: Update HISTORY.md
+
+2017-04-22  rocky <rb@dustyfeet.com>
+
+	* HISTORY.md: History keeps gettting amended
+
+2017-04-22  rocky <rb@dustyfeet.com>
+
+	* README.rst: Document Python 3.x status
+
+2017-04-22  rocky <rb@dustyfeet.com>
+
+	* test/simple_source/bug35/03_async_await.py,
+	uncompyle6/parsers/parse35.py, uncompyle6/semantics/pysource.py: Add
+	await expr Fixes #111
+
+2017-04-22  rocky <rb@dustyfeet.com>
+
+	* : Update test
+
+2017-04-22  rocky <rb@dustyfeet.com>
+
+	* test/simple_source/bug33/02_pos_args.py,
+	uncompyle6/parsers/parse3.py, uncompyle6/semantics/make_function.py: 
+	3.3+ bug in handling single kwarg after * Towards fixing issue #110
+
+2017-04-20  rocky <rb@dustyfeet.com>
+
+	* test/simple_source/bug35/02_async_for.py,
+	uncompyle6/parsers/parse35.py: Add async for with pass statement Fixes #109
+
+2017-04-19  rocky <rb@dustyfeet.com>
+
+	* test/simple_source/bug35/03_while-if-break.py,
+	uncompyle6/parsers/parse3.py: 3.5 ifelsestmtl grammar bug.  Fixes #108
+
+2017-04-18  rocky <rb@dustyfeet.com>
+
+	* test/simple_source/bug35/03_async_await.py,
+	uncompyle6/parsers/parse35.py: Expand await stmt handling Fixes #107
+
+2017-04-18  rocky <rb@dustyfeet.com>
+
+	* test/simple_source/bug33/01_delete_deref.py,
+	uncompyle6/parsers/parse32.py, uncompyle6/semantics/pysource.py: Add
+	DELETE_DEREF grammar rule Fixes Issue #106
+
+2017-04-17  rocky <rb@dustyfeet.com>
+
+	* test/simple_source/bug36/01_extended_arg.py,
+	test/simple_source/bug36/01_if_file.py: Rename test case to
+	something more appropriate
+
+2017-04-17  rocky <rb@dustyfeet.com>
+
+	* test/simple_source/bug36/01_if_file.py: Fix botched test case Thanks to Zm908 for pointing this out
+
+2017-04-16  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/parsers/parse3.py: Comment on what's up with last
+	change
+
+2017-04-16  rocky <rb@dustyfeet.com>
+
+	* test/simple_source/bug22/03_if1.py,
+	test/simple_source/bug31/02_ifelse_comprehension.py,
+	uncompyle6/parsers/parse3.py: Python 3.x ifelse in comprehension Fixes Issue #91
+
+2017-04-16  rocky <rb@dustyfeet.com>
+
+	* : Add 2.7 complex test
+
+2017-04-15  rocky <rb@dustyfeet.com>
+
+	* test/simple_source/bug35/01_map_unpack.py,
+	uncompyle6/semantics/pysource.py: Correct bug in 3.5+ build_list
+	with UNPACK
+
+2017-04-15  R. Bernstein <rocky@users.noreply.github.com>
+
+	* HOW-TO-REPORT-A-BUG.md: Update HOW-TO-REPORT-A-BUG.md
+
+2017-04-15  R. Bernstein <rocky@users.noreply.github.com>
+
+	* HOW-TO-REPORT-A-BUG.md: Update HOW-TO-REPORT-A-BUG.md
+
+2017-04-15  rocky <rb@dustyfeet.com>
+
+	* test/simple_source/bug36/01_if_file.py,
+	uncompyle6/parsers/parse36.py: 3.6 generates Wonky EXTENDED_ARG in
+	expression Fixes Issue #102
+
+2017-04-15  rocky <rb@dustyfeet.com>
+
+	* HOW-TO-REPORT-A-BUG.md, MANIFEST.in: Add how to report a bug Add test case for ... if 1 else ...
+
+2017-04-14  rocky <rb@dustyfeet.com>
+
+	* test/simple_source/bug35/01_map_unpack.py,
+	uncompyle6/parsers/parse3.py, uncompyle6/parsers/parse35.py,
+	uncompyle6/semantics/pysource.py: Python 3.5+ BUILD_UNMAP_PACK rules Towards addressing Issue #98
+
+2017-04-14  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/scanners/scanner3.py: Reduce adding RETURN_END_IF in
+	3.5+ The whole control flow determination has to be redone in a less
+	haphazard way using real flow-control analysis. Hopefully that's on
+	the way.  In the meantime we have this hack.
+
+2017-04-14  rocky <rb@dustyfeet.com>
+
+	* test/simple_source/bug27+/03_if_1_else.py,
+	test/simple_source/bug27+/03_if_true_else.py: Better names for a
+	test
+
+2017-04-13  rocky <rb@dustyfeet.com>
+
+	* test/simple_source/bug27+/03_if_true_else.py,
+	uncompyle6/parser.py, uncompyle6/parsers/parse3.py,
+	uncompyle6/semantics/consts.py: Add if1else. Fixes #101
+
+2017-04-13  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/parsers/parse3.py: In 3.x come_from should include
+	COME_FROM_EXCEPT
+
+2017-04-13  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/parsers/parse35.py: Towards fixing issue #92
+
+2017-04-13  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/parsers/parse23.py, uncompyle6/semantics/pysource.py: 
+	Add Python 2.3 rule for "if 1: ..." Fully fixes #97 for Python 2.3. Python 2.4 was fixed in a previous
+	commit.
+
+2017-04-12  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/parsers/parse3.py,
+	uncompyle6/semantics/make_function.py: annotate args type need to be
+	expr's not constants
+
+2017-04-12  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/parsers/parse24.py: Handle Python 2.4 "if 1...."
+
+2017-04-11  rocky <rb@dustyfeet.com>
+
+	* test/simple_source/bug31/04_def_annotate.py,
+	uncompyle6/semantics/fragments.py,
+	uncompyle6/semantics/make_function.py: Bang on 3.x annotations
+
+2017-04-11  rocky <rb@dustyfeet.com>
+
+	* test/simple_source/bug31/04_def_annotate.py,
+	uncompyle6/parsers/parse3.py, uncompyle6/semantics/pysource.py: 
+	Towards fixing annotated decorator functions...  and annotate functions
+
+2017-04-10  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/parsers/parse2.py, uncompyle6/scanners/scanner27.py,
+	uncompyle6/semantics/check_ast.py, uncompyle6/semantics/pysource.py: 
+	Misc bugs parse2.py: restore accidently-removed while1stmt rule scanner27.py:
+	grammar typo check_ast: add while1else to list of looping constructs
+	pysource.py: CALL_FUNCTION_VAR_KW_ARGS with positional args rule is
+	different?
+
+2017-04-10  rocky <rb@dustyfeet.com>
+
+	* test/simple_source/stmts/02_while1else.py,
+	uncompyle6/parsers/parse2.py, uncompyle6/parsers/parse3.py,
+	uncompyle6/parsers/parse35.py: Add more while1else grammar rules Towards addressing issue #93
+
+2017-04-09  rocky <rb@dustyfeet.com>
+
+	* : One more FUNCTION_VAR test for 3.3
+
+2017-04-09  rocky <rb@dustyfeet.com>
+
+	* test/simple_source/def/10_kw+pos_args-bug.py,
+	uncompyle6/parsers/parse3.py, uncompyle6/semantics/pysource.py: 
+	Another Python 3.5 FUNCTION_VAR bug Fixes #94
+
+2017-04-09  rocky <rb@dustyfeet.com>
+
+	* : commit 4199bc7f617e387fb03fc06939cd17366dc15c5e Author: rocky
+	<rb@dustyfeet.com> Date:   Sun Apr 9 05:30:45 2017 -0400
+
+2017-04-03  rocky <rb@dustyfeet.com>
+
+	* : commit 6773a66b99d07e48290a77dbbbe3c71cc39c31ba Author: rocky
+	<rb@dustyfeet.com> Date:   Mon Apr 3 06:53:12 2017 -0400
+
+2017-03-27  rocky <rb@dustyfeet.com>
+
+	* : commit a91cd716670be09d3cef34e1bb36a67f96f91712 Author: rocky
+	<rb@dustyfeet.com> Date:   Mon Mar 27 07:08:59 2017 -0400
+
+2017-03-19  rocky <rb@dustyfeet.com>
+
+	* __pkginfo__.py: Use more-recent xdis
+
+2017-03-15  rocky <rb@dustyfeet.com>
+
+	* HISTORY.md, test/simple_source/bug33/01_if_try_except.py: grammar
+	typo and add another test
+
+2017-03-12  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/scanners/scanner3.py: Python 3.0 doesn't have
+	POP_JUMP_IF...
+
+2017-03-12  rocky <rb@dustyfeet.com>
+
+	* README.rst: Note problem in handling pathologically long lists
+
+2017-03-07  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/scanners/scanner3.py: Small cleanup - remove
+	POP_JUMP_TF
+
+2017-03-05  rocky <rb@dustyfeet.com>
+
+	* pytest/test_grammar.py, uncompyle6/parsers/parse3.py,
+	uncompyle6/parsers/parse33.py, uncompyle6/scanners/scanner3.py: More
+	accurate ranges of try blocks in 3.x
+
+2017-03-05  rocky <rb@dustyfeet.com>
+
+	* test/simple_source/bug33/01_try_except.py: More accurate ranges of
+	try blocks in 3.x
+
+2017-03-04  R. Bernstein <rocky@users.noreply.github.com>
+
+	* : Merge pull request #84 from
+	moagstar/property_based_test_function_call Property based test function call
+
+2017-03-04  rocky <rb@dustyfeet.com>
+
+	* README.rst: README updates for 3.5 and 1.5
+
+2017-03-04  rocky <rb@dustyfeet.com>
+
+	* test/simple_source/bug32/01_named_and_kwargs.py,
+	uncompyle6/parsers/parse3.py: Bug found by hypothesis in creating
+	function calls
+
+2017-03-04  Daniel Bradburn <moagstar@gmail.com>
+
+	* pytest/test_function_call.py: marked all function call tests as
+	failing until they pass across all python versions
+
+2017-03-04  Daniel Bradburn <moagstar@gmail.com>
+
+	* pytest/test_function_call.py: added minimal examples for various
+	function call opcodes
+
+2017-03-04  Daniel Bradburn <moagstar@gmail.com>
+
+	* pytest/test_function_call.py: added property based test for
+	verifying uncompylation of function calls. A number of minimal
+	examples for the various function call opcodes have been generated
+	with the majority marked as expected failure until python 3.6 opcode
+	support is complete. I'm hoping this will make it easier to figure
+	out what needs to be done to support the new opcodes and changed
+	semntics for function calls
+
+2017-03-03  Daniel Bradburn <moagstar@gmail.com>
+
+	* pytest/test_function_call.py: reduced errors when generating
+	function call instances
+
+2017-03-03  Daniel Bradburn <moagstar@gmail.com>
+
+	* pytest/test_function_call.py: added test file for function calls
+
+2017-03-03  Daniel Bradburn <moagstar@gmail.com>
+
+	* .gitignore: added .idea to gitignore
+
+2017-03-03  Daniel Bradburn <moagstar@gmail.com>
+
+	* .gitignore: added .venv to gitignore
+
+2017-03-01  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/scanner.py, uncompyle6/scanners/scanner2.py,
+	uncompyle6/scanners/scanner3.py, uncompyle6/verify.py: COME_FROM for
+	3.x POP_EXCEPT, DRY with op_name() ...  Start adding COME_FROMs for POP_EXCEPT in preparation for getting
+	tryelse blocks correct.  Simpler opname access functions:   - self.op_name(op) is self.opc.opname[op]   - self.op_name_from_offset(offset) is
+	  self.opc.opname[self.code[offset]] verify.py: not all offsets are ints
+
+2017-02-28  rocky <rb@dustyfeet.com>
+
+	* README.rst, uncompyle6/parser.py, uncompyle6/parsers/parse26.py: 
+	Python 2.6 a == b or c == d == 3 grammar bug
+
+2017-02-28  rocky <rb@dustyfeet.com>
+
+	* : 2.6 a == b or x == y == z bug
+
+2017-02-28  rocky <rb@dustyfeet.com>
+
+	* test/simple_source/bug26/03_double_equals.py,
+	uncompyle6/semantics/consts.py: Predidence of cmp_list: x == y == z The x, y, z should not have parenthesis around pairs of them (x ==
+	y) or (y == z)
+
+2017-02-28  rocky <rb@dustyfeet.com>
+
+	* uncompyle6/parser.py, uncompyle6/parsers/parse27.py: Python 2.7
+	check jump targets of "and"
+
 2017-02-25  rocky <rb@dustyfeet.com>
 
-	* uncompyle6/version.py: Get ready for release 2.9.10
+	* ChangeLog, NEWS, __pkginfo__.py, uncompyle6/version.py: Get ready
+	for release 2.9.10
 
 2017-02-25  rocky <rb@dustyfeet.com>
 
